@@ -139,7 +139,7 @@ function App() {
 
   function exitCall() {
     alert("You just disconnected");
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
     setUnderCall(false);
     setReceivingCall(false);
     setCaller("");
