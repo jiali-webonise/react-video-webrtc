@@ -19,7 +19,7 @@ io.on('connection', socket => {
     io.sockets.emit("allUsers", users);
     socket.on('disconnect', (data) => {
         console.log('disconnect emit');
-        socket.broadcast.emit("user left");
+        socket.broadcast.emit("user left", { userLeft: socket.id });
         // io.to(data.to).emit('user left', { from: data.from });
         delete users[socket.id];
         //update users

@@ -62,10 +62,12 @@ function App() {
 
     //handle user leave
     socket.current.on("user left", (data) => {
+      alert(`${data.userLeft} disconnected`);
       setReceivingCall(false);
       setCaller("");
       // setLeft(true);
       setCallAccepted(false);
+      setUnderCall(false);
       setUsers({});
       const destroyPeer = new Peer(peerRef.current);
       destroyPeer.destroy();
@@ -138,15 +140,12 @@ function App() {
   }
 
   function exitCall() {
-    alert("You just disconnected");
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
     setUnderCall(false);
     setReceivingCall(false);
-    setCaller("");
     setCallAccepted(false);
-    setUsers({});
-    const destroyPeer = new Peer(peerRef.current);
-    destroyPeer.destroy();
+    alert("You just disconnected");
+    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    // window.location.href = 'http://localhost:3000/';
   }
   let UserVideo;
   if (stream) {
@@ -174,7 +173,7 @@ function App() {
 
   let underCallpeers;
   if (underCall) {
-    const msg = `Caller ${caller} is connecting with You: ${yourID}`;
+    const msg = `Connected successfully, You ID: ${yourID}`;
     underCallpeers = (<div>
       <h1>{msg}</h1>
       <button onClick={exitCall}>Exit</button>
