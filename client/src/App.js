@@ -23,6 +23,8 @@ const Video = styled.video`
 `;
 
 function App() {
+  // const [left, setLeft] = useState(false);
+  const [underCall, setUnderCall] = useState(false);
   const [yourID, setYourID] = useState("");
   const [users, setUsers] = useState({});
   const [stream, setStream] = useState();
@@ -34,6 +36,7 @@ function App() {
   const userVideo = useRef();
   const partnerVideo = useRef();
   const socket = useRef();
+  const peerRef = useRef();
 
   useEffect(() => {
     socket.current = io.connect("/");
@@ -55,6 +58,21 @@ function App() {
       setReceivingCall(true);
       setCaller(data.from);
       setCallerSignal(data.signal);
+    });
+
+    //handle user leave
+    socket.current.on("user left", (data) => {
+      setReceivingCall(false);
+      setCaller("");
+      // setLeft(true);
+      setCallAccepted(false);
+      setUsers({});
+      const destroyPeer = new Peer(peerRef.current);
+      destroyPeer.destroy();
+    })
+
+    socket.current.on("filledRoom", () => {
+      alert("The room is filled");
     })
   }, []);
 
@@ -65,18 +83,18 @@ function App() {
       config: {
 
         iceServers: [
-            {
-                urls: "stun:numb.viagenie.ca",
-                username: "sultan1640@gmail.com",
-                credential: "98376683"
-            },
-            {
-                urls: "turn:numb.viagenie.ca",
-                username: "sultan1640@gmail.com",
-                credential: "98376683"
-            }
+          {
+            urls: "stun:numb.viagenie.ca",
+            username: "sultan1640@gmail.com",
+            credential: "98376683"
+          },
+          {
+            urls: "turn:numb.viagenie.ca",
+            username: "sultan1640@gmail.com",
+            credential: "98376683"
+          }
         ]
-    },
+      },
       stream: stream,
     });
 
@@ -92,9 +110,11 @@ function App() {
 
     socket.current.on("callAccepted", signal => {
       setCallAccepted(true);
+      setUnderCall(true);
       peer.signal(signal);
     })
 
+    peerRef.current = peer;
   }
 
   function acceptCall() {
@@ -112,9 +132,22 @@ function App() {
       partnerVideo.current.srcObject = stream;
     });
 
+    peerRef.current = peer;
+    setUnderCall(true);
     peer.signal(callerSignal);
   }
 
+  function exitCall() {
+    alert("You just disconnected");
+    window.location.href = 'http://localhost:3000/';
+    setUnderCall(false);
+    setReceivingCall(false);
+    setCaller("");
+    setCallAccepted(false);
+    setUsers({});
+    const destroyPeer = new Peer(peerRef.current);
+    destroyPeer.destroy();
+  }
   let UserVideo;
   if (stream) {
     UserVideo = (
@@ -138,6 +171,15 @@ function App() {
       </div>
     )
   }
+
+  let underCallpeers;
+  if (underCall) {
+    const msg = `Caller ${caller} is connecting with You: ${yourID}`;
+    underCallpeers = (<div>
+      <h1>{msg}</h1>
+      <button onClick={exitCall}>Exit</button>
+    </div>)
+  }
   return (
     <Container>
       <Row>
@@ -145,7 +187,7 @@ function App() {
         {PartnerVideo}
       </Row>
       <Row>
-        {Object.keys(users).map(key => {
+        {users && !underCall && Object.keys(users).map(key => {
           if (key === yourID) {
             return null;
           }
@@ -155,7 +197,8 @@ function App() {
         })}
       </Row>
       <Row>
-        {incomingCall}
+        {receivingCall && !underCall && incomingCall}
+        {underCall && underCallpeers}
       </Row>
     </Container>
   );

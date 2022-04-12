@@ -13,10 +13,18 @@ io.on('connection', socket => {
     if (!users[socket.id]) {
         users[socket.id] = socket.id;
     }
+
+    console.log(Object.entries(users));
     socket.emit("yourID", socket.id);
     io.sockets.emit("allUsers", users);
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (data) => {
+        console.log('disconnect emit');
+        socket.broadcast.emit("user left");
+        // io.to(data.to).emit('user left', { from: data.from });
         delete users[socket.id];
+        //update users
+        io.sockets.emit("allUsers", users);
+        // io.sockets.emit("user left");
     })
 
     socket.on("callUser", (data) => {
