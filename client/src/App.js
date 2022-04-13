@@ -185,6 +185,7 @@ function App() {
         {UserVideo}
         {PartnerVideo}
       </Row>
+      <p>Your ID: {yourID}</p>
       <Row>
         {users && !underCall && Object.keys(users).map(key => {
           if (key === yourID) {
