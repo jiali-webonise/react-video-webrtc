@@ -161,8 +161,8 @@ function App() {
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    // window.location.href = 'http://localhost:3000/';
   }
   let UserVideo;
   if (stream) {
