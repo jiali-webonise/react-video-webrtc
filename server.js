@@ -16,20 +16,17 @@ io.on('connection', socket => {
     }
 
     console.log("users in server: ", Object.entries(users));
+    console.log("calling:", calling);
     socket.emit("yourID", socket.id);
     io.sockets.emit("allUsers", users);
-    socket.on('disconnect', (data) => {
+    socket.on('disconnect', () => {
         console.log('disconnect emit');
-        socket.broadcast.emit("user left", { userLeft: socket.id });
-        // io.to(data.to).emit('user left', { from: data.from });
+        socket.broadcast.emit("user left", { userLeft: socket.id, peers: calling });
         delete users[socket.id];
-        calling = [];
         console.log("after disconnection,and users in server: ", Object.entries(users));
-        //update users
-
-        // io.sockets.emit("user left");
     })
 
+    //update users
     socket.on("updateUsers", () => {
         console.log("users in server: ", Object.entries(users));
         io.sockets.emit("refresh users", users);
@@ -38,6 +35,7 @@ io.on('connection', socket => {
     socket.on("callUser", (data) => {
         console.log("callUser, users in server: ", Object.entries(users));
         calling.push(data.from, data.userToCall);
+        console.log("calling:", calling);
         io.to(data.userToCall).emit('hey', { signal: data.signalData, from: data.from });
     })
 
@@ -48,6 +46,7 @@ io.on('connection', socket => {
         }
 
         io.to(data.to).emit('callAccepted', { signal: data.signal, peerID: data.from });
+        console.log("calling:", calling);
     })
 });
 

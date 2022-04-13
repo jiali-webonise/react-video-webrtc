@@ -70,22 +70,30 @@ function App() {
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
-      console.log(peerID);
-      console.log(caller);
-      console.log(data.userLeft);
-      setBeingCalled(false);
-      setReceivingCall(false);
-      setCaller("");
-      // setLeft(true);
-      setCallAccepted(false);
-      setUnderCall(false);
-      const destroyPeer = new Peer(peerRef.current);
-      destroyPeer.destroy();
-      socket.current.emit("updateUsers");
+      console.log("user left: ", data.userLeft);
+      console.log("peers: ", data.peers);
+      if (data.peers.includes(data.userLeft)) {
+        setBeingCalled(false);
+        setReceivingCall(false);
+        setCaller("");
+        setCallAccepted(false);
+        setUnderCall(false);
+        const destroyPeer = new Peer(peerRef.current);
+        destroyPeer.destroy();
+        socket.current.emit("updateUsers");
+      }
     })
 
     socket.current.on("refresh users", (users) => {
       setUsers(users);
+    })
+
+    socket.current.on("peers under call", (data) => {
+      console.log("peers under call", Object.entries(data.peers));
+      console.log("users", Object.entries(users));
+      // const userCanCall = users.map(el => !data.peers.has(el));
+      // console.log("userCanCall: ", userCanCall);
+      // setUsers(userCanCall);
     })
   }, []);
 
@@ -161,8 +169,8 @@ function App() {
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    // window.location.href = 'http://localhost:3000/';
+    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    window.location.href = 'http://localhost:3000/';
   }
   let UserVideo;
   if (stream) {
@@ -210,7 +218,7 @@ function App() {
             return null;
           }
           return (
-            <button onClick={() => callPeer(key)}>Call {key}</button>
+            <button key={key} onClick={() => callPeer(key)}>Call {key}</button>
           );
         })}
       </Row>
