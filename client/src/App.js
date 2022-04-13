@@ -24,6 +24,7 @@ const Video = styled.video`
 
 function App() {
   // const [left, setLeft] = useState(false);
+  const [beingCalled, setBeingCalled] = useState(false);
   const [underCall, setUnderCall] = useState(false);
   const [yourID, setYourID] = useState("");
   const [users, setUsers] = useState({});
@@ -59,22 +60,21 @@ function App() {
       setCaller(data.from);
       setCallerSignal(data.signal);
     });
+    socket.current.on("beingCalled", (data) => {
+      setBeingCalled(true);
+    })
 
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
+      setBeingCalled(false);
       setReceivingCall(false);
       setCaller("");
       // setLeft(true);
       setCallAccepted(false);
       setUnderCall(false);
-      setUsers({});
       const destroyPeer = new Peer(peerRef.current);
       destroyPeer.destroy();
-    })
-
-    socket.current.on("filledRoom", () => {
-      alert("The room is filled");
     })
   }, []);
 
@@ -120,26 +120,30 @@ function App() {
   }
 
   function acceptCall() {
-    setCallAccepted(true);
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream: stream,
-    });
-    peer.on("signal", data => {
-      socket.current.emit("acceptCall", { signal: data, to: caller })
-    })
+    if (!beingCalled) {
+      setCallAccepted(true);
+      const peer = new Peer({
+        initiator: false,
+        trickle: false,
+        stream: stream,
+      });
+      peer.on("signal", data => {
+        socket.current.emit("acceptCall", { signal: data, to: caller })
+      })
 
-    peer.on("stream", stream => {
-      partnerVideo.current.srcObject = stream;
-    });
+      peer.on("stream", stream => {
+        partnerVideo.current.srcObject = stream;
+      });
 
-    peerRef.current = peer;
-    setUnderCall(true);
-    peer.signal(callerSignal);
+      peerRef.current = peer;
+      setUnderCall(true);
+      peer.signal(callerSignal);
+    }
+
   }
 
   function exitCall() {
+    setBeingCalled(false);
     setUnderCall(false);
     setReceivingCall(false);
     setCallAccepted(false);
@@ -162,7 +166,7 @@ function App() {
   }
 
   let incomingCall;
-  if (receivingCall) {
+  if (receivingCall && !beingCalled) {
     incomingCall = (
       <div>
         <h1>{caller} is calling you</h1>
@@ -197,7 +201,7 @@ function App() {
         })}
       </Row>
       <Row>
-        {receivingCall && !underCall && incomingCall}
+        {receivingCall && !underCall && !beingCalled && incomingCall}
         {underCall && underCallpeers}
       </Row>
     </Container>
