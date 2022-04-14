@@ -65,8 +65,7 @@ function App() {
     socket.current.on("beingCalled", () => {
       setBeingCalled(true);
     })
-    console.log('before user left', peerID);
-    console.log('before user left', caller);
+
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
@@ -87,14 +86,6 @@ function App() {
 
     socket.current.on("refresh users", (users) => {
       setUsers(users);
-    })
-
-    socket.current.on("peers under call", (data) => {
-      console.log("peers under call", Object.entries(data.peers));
-      console.log("users", Object.entries(users));
-      // const userCanCall = users.map(el => !data.peers.has(el));
-      // console.log("userCanCall: ", userCanCall);
-      // setUsers(userCanCall);
     })
   }, []);
 

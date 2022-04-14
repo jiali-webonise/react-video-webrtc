@@ -28,6 +28,7 @@ io.on('connection', socket => {
 
     //update users
     socket.on("updateUsers", () => {
+        calling = [];
         console.log("users in server: ", Object.entries(users));
         io.sockets.emit("refresh users", users);
     })
