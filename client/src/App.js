@@ -81,6 +81,7 @@ function App() {
         const destroyPeer = new Peer(peerRef.current);
         destroyPeer.destroy();
         socket.current.emit("updateUsers");
+        alert("Please refresh your page");
       }
     })
 
