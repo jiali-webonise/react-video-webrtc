@@ -26,6 +26,7 @@ function App() {
   // const [left, setLeft] = useState(false);
   const [beingCalled, setBeingCalled] = useState(false);
   const [underCall, setUnderCall] = useState(false);
+  const [userUnderCall, setUserUnderCall] = useState("");
   const [yourID, setYourID] = useState("");
   const [peerID, setPeerID] = useState("");
   const [users, setUsers] = useState({});
@@ -34,6 +35,8 @@ function App() {
   const [caller, setCaller] = useState("");
   const [callerSignal, setCallerSignal] = useState();
   const [callAccepted, setCallAccepted] = useState(false);
+
+  const [callInfo, setCallInfo] = useState();
 
   const userVideo = useRef();
   const partnerVideo = useRef();
@@ -61,9 +64,13 @@ function App() {
       setCaller(data.from);
       setPeerID(data.from);
       setCallerSignal(data.signal);
+      setCallInfo(data.callInfo);
+      console.log(data.callInfo);
     });
-    socket.current.on("beingCalled", () => {
+
+    socket.current.on("beingCalled", (userToCall) => {
       setBeingCalled(true);
+      setUserUnderCall(userToCall);
     })
 
     //handle user leave
@@ -72,6 +79,8 @@ function App() {
       console.log("user left: ", data.userLeft);
       console.log("peers: ", data.peers);
       if (data.peers.includes(data.userLeft)) {
+        //update callInfo
+
         setBeingCalled(false);
         setReceivingCall(false);
         setCaller("");
@@ -122,6 +131,7 @@ function App() {
     });
 
     socket.current.on("callAccepted", data => {
+      setCallInfo(data.callInfo);
       setPeerID(data.peerID);
       setCallAccepted(true);
       setUnderCall(true);
@@ -141,7 +151,7 @@ function App() {
       });
       setPeerID(caller);
       peer.on("signal", data => {
-        socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID })
+        socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
       })
 
       peer.on("stream", stream => {
@@ -161,8 +171,8 @@ function App() {
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    // window.location.href = 'http://localhost:3000/';
+    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    window.location.href = 'http://localhost:3000/';
   }
   let UserVideo;
   if (stream) {
@@ -209,12 +219,14 @@ function App() {
           if (key === yourID) {
             return null;
           }
+
           return (
             <button key={key} onClick={() => callPeer(key)}>Call {key}</button>
           );
         })}
       </Row>
       <Row>
+        {!underCall && beingCalled && <p>{userUnderCall} is in a call, please call later</p>}
         {receivingCall && !underCall && !beingCalled && incomingCall}
         {underCall && underCallpeers}
       </Row>
