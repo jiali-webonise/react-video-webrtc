@@ -22,8 +22,9 @@ const Video = styled.video`
   height: 50%;
 `;
 
+let callingInfo;
+
 function App() {
-  // const [left, setLeft] = useState(false);
   const [beingCalled, setBeingCalled] = useState(false);
   const [underCall, setUnderCall] = useState(false);
   const [userUnderCall, setUserUnderCall] = useState("");
@@ -65,7 +66,7 @@ function App() {
       setPeerID(data.from);
       setCallerSignal(data.signal);
       setCallInfo(data.callInfo);
-      console.log(data.callInfo);
+      callingInfo = data.callInfo;
     });
 
     socket.current.on("beingCalled", (userToCall) => {
@@ -73,14 +74,20 @@ function App() {
       setUserUnderCall(userToCall);
     })
 
+    socket.current.on("update callInfo", (data) => {
+      setCallInfo(data.callInfo);
+      callingInfo = data.callInfo;
+    })
+
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
-      console.log("user left: ", data.userLeft);
-      console.log("peers: ", data.peers);
-      if (data.peers.includes(data.userLeft)) {
-        //update callInfo
-
+      if (callingInfo?.caller === data.userLeft || callingInfo?.receiver === data.userLeft) {
+        //update local callingInfo to send to signaling server
+        callingInfo.completed = true;
+        callingInfo.undercall = false;
+        setCallInfo(callingInfo);
+        console.log("update local  callingInfo: ", callingInfo);//
         setBeingCalled(false);
         setReceivingCall(false);
         setCaller("");
@@ -88,7 +95,7 @@ function App() {
         setUnderCall(false);
         const destroyPeer = new Peer(peerRef.current);
         destroyPeer.destroy();
-        socket.current.emit("updateUsers");
+        socket.current.emit("updateUsers after disconnection", callingInfo);
         alert("Please refresh your page");
       }
     })
@@ -132,10 +139,14 @@ function App() {
 
     socket.current.on("callAccepted", data => {
       setCallInfo(data.callInfo);
+      callingInfo = data.callInfo;
       setPeerID(data.peerID);
       setCallAccepted(true);
       setUnderCall(true);
       peer.signal(data.signal);
+      socket.current.emit("update after successful connection", {
+        callInfo: data.callInfo
+      })
     })
 
     peerRef.current = peer;
@@ -200,7 +211,7 @@ function App() {
 
   let underCallpeers;
   if (underCall) {
-    const msg = `Connected successfully, You ID: ${yourID}`;
+    const msg = `Connected!`;
     underCallpeers = (<div>
       <h1>{msg}</h1>
       <button onClick={exitCall}>Exit</button>
@@ -229,6 +240,10 @@ function App() {
         {!underCall && beingCalled && <p>{userUnderCall} is in a call, please call later</p>}
         {receivingCall && !underCall && !beingCalled && incomingCall}
         {underCall && underCallpeers}
+        <ul>
+          {callInfo && Object.entries(callInfo).map(el => <li key={el[0]}>{el[0]}: {String(el[1])}</li>)}
+        </ul>
+
       </Row>
     </Container>
   );
