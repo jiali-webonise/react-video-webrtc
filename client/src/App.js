@@ -25,9 +25,9 @@ const Video = styled.video`
 let callingInfo;
 
 function App() {
-  const [beingCalled, setBeingCalled] = useState(false);
   const [underCall, setUnderCall] = useState(false);
-  const [userUnderCall, setUserUnderCall] = useState("");
+  const [finishCall, setFinishCall] = useState(false);
+  const [sendCall, setSendCall] = useState(false);
   const [yourID, setYourID] = useState("");
   const [peerID, setPeerID] = useState("");
   const [users, setUsers] = useState({});
@@ -60,6 +60,11 @@ function App() {
       setUsers(users);
     })
 
+    socket.current.on("deprecated user", (data) => {
+      alert(`Cannot call ${data.userToCall}, this user is deprecated`);
+      setSendCall(false);
+    })
+
     socket.current.on("hey", (data) => {
       setReceivingCall(true);
       setCaller(data.from);
@@ -69,9 +74,10 @@ function App() {
       callingInfo = data.callInfo;
     });
 
-    socket.current.on("beingCalled", (userToCall) => {
-      setBeingCalled(true);
-      setUserUnderCall(userToCall);
+    socket.current.on("beingCalled", (data) => {
+      console.log("cannot call: ", data);
+      alert(`Cannot call ${data.userToCall}, this user is under a call`);
+      setSendCall(false);
     })
 
     socket.current.on("update callInfo", (data) => {
@@ -87,8 +93,8 @@ function App() {
         callingInfo.completed = true;
         callingInfo.undercall = false;
         setCallInfo(callingInfo);
-        console.log("update local  callingInfo: ", callingInfo);//
-        setBeingCalled(false);
+        setFinishCall(true);
+        console.log("update local  callingInfo: ", callingInfo);
         setReceivingCall(false);
         setCaller("");
         setCallAccepted(false);
@@ -106,6 +112,7 @@ function App() {
   }, []);
 
   function callPeer(id) {
+    setSendCall(true);
     const peer = new Peer({
       initiator: true,
       trickle: false,
@@ -138,6 +145,7 @@ function App() {
     });
 
     socket.current.on("callAccepted", data => {
+      setSendCall(false);
       setCallInfo(data.callInfo);
       callingInfo = data.callInfo;
       setPeerID(data.peerID);
@@ -153,38 +161,41 @@ function App() {
   }
 
   function acceptCall() {
-    if (!beingCalled) {
-      setCallAccepted(true);
-      const peer = new Peer({
-        initiator: false,
-        trickle: false,
-        stream: stream,
-      });
-      setPeerID(caller);
-      peer.on("signal", data => {
-        socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
-      })
+    setSendCall(false);
+    setCallAccepted(true);
+    const peer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream: stream,
+    });
+    setPeerID(caller);
+    peer.on("signal", data => {
+      socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
+    })
 
-      peer.on("stream", stream => {
-        partnerVideo.current.srcObject = stream;
-      });
+    peer.on("stream", stream => {
+      partnerVideo.current.srcObject = stream;
+    });
 
-      peerRef.current = peer;
-      setUnderCall(true);
-      peer.signal(callerSignal);
-    }
-
+    peerRef.current = peer;
+    setUnderCall(true);
+    peer.signal(callerSignal);
   }
 
   function exitCall() {
-    setBeingCalled(false);
     setUnderCall(false);
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    // window.location.href = 'http://localhost:3000/';
   }
+
+  function leaveRoom() {
+    // window.location.href = 'http://localhost:3000/';
+    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+  }
+
   let UserVideo;
   if (stream) {
     UserVideo = (
@@ -200,7 +211,7 @@ function App() {
   }
 
   let incomingCall;
-  if (receivingCall && !beingCalled) {
+  if (receivingCall) {
     incomingCall = (
       <div>
         <h1>{caller} is calling you</h1>
@@ -226,7 +237,7 @@ function App() {
       <p>Your ID: {yourID}</p>
       {underCall && <p>Your peerID: {peerID}</p>}
       <Row>
-        {users && !underCall && Object.keys(users).map(key => {
+        {users && !finishCall && !underCall && Object.keys(users).map(key => {
           if (key === yourID) {
             return null;
           }
@@ -237,13 +248,13 @@ function App() {
         })}
       </Row>
       <Row>
-        {!underCall && beingCalled && <p>{userUnderCall} is in a call, please call later</p>}
-        {receivingCall && !underCall && !beingCalled && incomingCall}
+        {receivingCall && !underCall && incomingCall}
+        {sendCall && !callAccepted && <p>Calling...waiting for response</p>}
         {underCall && underCallpeers}
         <ul>
-          {callInfo && Object.entries(callInfo).map(el => <li key={el[0]}>{el[0]}: {String(el[1])}</li>)}
+          {!finishCall && callInfo && Object.entries(callInfo).map(el => <li key={el[0]}>{el[0]}: {String(el[1])}</li>)}
         </ul>
-
+        {finishCall && <button onClick={leaveRoom}>Leave this room to start new call</button>}
       </Row>
     </Container>
   );
