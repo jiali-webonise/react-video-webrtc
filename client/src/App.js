@@ -1,26 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import './App.css';
+import './App.scss';
 import io from "socket.io-client";
 import Peer from "simple-peer";
-import styled from "styled-components";
-
-const Container = styled.div`
-  height: 100vh;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Row = styled.div`
-  display: flex;
-  width: 100%;
-`;
-
-const Video = styled.video`
-  border: 1px solid blue;
-  width: 50%;
-  height: 50%;
-`;
 
 let callingInfo;
 
@@ -199,64 +180,113 @@ function App() {
   let UserVideo;
   if (stream) {
     UserVideo = (
-      <Video playsInline muted ref={userVideo} autoPlay />
+      <video className='video-style' playsInline muted ref={userVideo} autoPlay />
     );
   }
 
-  let PartnerVideo;
-  if (callAccepted) {
-    PartnerVideo = (
-      <Video playsInline ref={partnerVideo} autoPlay />
-    );
-  }
+
 
   let incomingCall;
   if (receivingCall) {
-    incomingCall = (
-      <div>
-        <h1>{caller} is calling you</h1>
-        <button onClick={acceptCall}>Accept</button>
+    incomingCall = (<div className="card mt-3 mb-3">
+      <h5 className="card-header h3 bg-light text-primary">Incoming Call...</h5>
+      <div className="card-body">
+        {caller} is calling you
+        <button type='button' className='btn btn-info mx-3' onClick={acceptCall}>Accept</button>
       </div>
+    </div>
     )
   }
 
   let underCallpeers;
   if (underCall) {
-    const msg = `Connected!`;
-    underCallpeers = (<div>
-      <h1>{msg}</h1>
-      <button onClick={exitCall}>Exit</button>
+    underCallpeers = (<div className="card border-success my-2">
+      <div className="card-header bg-success h3 text-white">
+        Status
+      </div>
+      <div className="card-body disply-6">
+        Connected!
+        <button type='button' className='btn btn-info mx-1 my-1' onClick={exitCall}>Exit</button>
+      </div>
     </div>)
   }
+
+  let peerIdComponents;
+  if (underCall) {
+    peerIdComponents = (<div className="card-body">
+      <h5 className="card-title h5">Your peerID: </h5>
+      <p className="card-text">{peerID}</p>
+    </div>)
+  }
+
+  let PartnerVideo;
+  if (callAccepted) {
+    PartnerVideo = (
+      <video className='video-style' playsInline ref={partnerVideo} autoPlay />
+    );
+  }
+
+  let callingMessage;
+  if (sendCall && !callAccepted) {
+    callingMessage = (<div className="card mt-3 mb-3">
+      <h5 className="card-header h3 bg-light text-primary">Calling...</h5>
+      <div className="card-body">
+        Waiting for response
+      </div>
+    </div>)
+  }
+
+  let callInfoComponent;
+  if (!finishCall && callInfo) {
+    callInfoComponent = (
+      <div className="card border-primary my-2">
+        <div className="card-header h3 bg-light text-primary">
+          Call Information
+        </div>
+        <div className="card-body">
+          {Object.entries(callInfo).map(el => <p className="card-text" key={el[0]}>{el[0]}: {String(el[1])} </p>)}
+        </div>
+      </div>)
+  }
+
   return (
-    <Container>
-      <Row>
-        {UserVideo}
-        {PartnerVideo}
-      </Row>
-      <p>Your ID: {yourID}</p>
-      {underCall && <p>Your peerID: {peerID}</p>}
-      <Row>
+    <div className='container container-sm'>
+      <div className="row">
+        <div className="col col-md">
+          <div className="card mt-3">
+            {UserVideo}
+            <div className="card-body">
+              <h5 className="card-title h5">Your ID: </h5>
+              <p className="card-text">{yourID}</p>
+            </div>
+          </div>
+        </div>
+        <div className="col col-md">
+          <div className="card mt-3">
+            {PartnerVideo}
+            {peerIdComponents}
+          </div>
+        </div>
+      </div>
+      <div>
         {users && !finishCall && !underCall && Object.keys(users).map(key => {
           if (key === yourID) {
             return null;
           }
 
           return (
-            <button key={key} onClick={() => callPeer(key)}>Call {key}</button>
+            <button type='button' className="btn btn-primary mt-3 me-3" key={key} onClick={() => callPeer(key)}>Call {key}</button>
           );
         })}
-      </Row>
-      <Row>
+      </div>
+      <div>
         {receivingCall && !underCall && incomingCall}
-        {sendCall && !callAccepted && <p>Calling...waiting for response</p>}
+        {callingMessage}
         {underCall && underCallpeers}
-        <ul>
-          {!finishCall && callInfo && Object.entries(callInfo).map(el => <li key={el[0]}>{el[0]}: {String(el[1])}</li>)}
-        </ul>
-        {finishCall && <button onClick={leaveRoom}>Leave this room to start new call</button>}
-      </Row>
-    </Container>
+        {callInfoComponent}
+        {finishCall && <button type='button' className="btn btn-info mt-3" onClick={leaveRoom}>Leave this room to start new call</button>}
+      </div>
+    </div >
   );
 }
 
