@@ -125,7 +125,7 @@ function App() {
     });
 
     peer.on("signal", data => {
-      socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID })
+      socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID, channelName: peer.channelName })
     })
 
     // peer.on("stream", stream => {

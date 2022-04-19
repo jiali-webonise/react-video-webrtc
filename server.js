@@ -8,7 +8,7 @@ const io = socket(server);
 const path = require("path")
 
 const users = {};
-const callsMap = new Map();
+// const callsMap = new Map();
 
 io.on('connection', socket => {
     if (!users[socket.id]) {
@@ -27,43 +27,40 @@ io.on('connection', socket => {
     //update users after disconnection and store information of completed calls
     socket.on("updateUsers after disconnection", (callingInfo) => {
         console.log("event: updateUsers after disconnection; users in server: ", Object.entries(users));
-        console.log("event: update after disconnection, callsMap", callsMap.entries());
-        if (callsMap.has(callingInfo.caller)) {
-            callsMap.delete(callingInfo.caller);
-        }
-        if (callsMap.has(callingInfo.receiver)) {
-            callsMap.delete(callingInfo.receiver);
-        }
+        // console.log("event: update after disconnection, callsMap", callsMap.entries());
+        // if (callsMap.has(callingInfo.caller)) {
+        //     callsMap.delete(callingInfo.caller);
+        // }
+        // if (callsMap.has(callingInfo.receiver)) {
+        //     callsMap.delete(callingInfo.receiver);
+        // }
 
-        //update
-        callsMap.set(callingInfo.caller,
-            {
-                peer: callingInfo.receiver,
-                undercall: callingInfo.undercall,
-                calling: callingInfo.calling,
-                completed: callingInfo.completed
-            });
-        callsMap.set(callingInfo.receiver,
-            {
-                peer: callingInfo.caller,
-                undercall: callingInfo.undercall,
-                calling: callingInfo.calling,
-                completed: callingInfo.completed
-            });
-        console.log("event: update after disconnection, update callsMap using callingInfo", callsMap.entries());
+        // //update
+        // callsMap.set(callingInfo.caller,
+        //     {
+        //         peer: callingInfo.receiver,
+        //         undercall: callingInfo.undercall,
+        //         calling: callingInfo.calling,
+        //         completed: callingInfo.completed
+        //     });
+        // callsMap.set(callingInfo.receiver,
+        //     {
+        //         peer: callingInfo.caller,
+        //         undercall: callingInfo.undercall,
+        //         calling: callingInfo.calling,
+        //         completed: callingInfo.completed
+        //     });
+        // console.log("event: update after disconnection, update callsMap using callingInfo", callsMap.entries());
         io.sockets.emit("refresh users", users);
     })
 
     socket.on("callUser", (data) => {
         console.log("event: callUser, users in server: ", Object.entries(users));
-        //To-do
-        //check if user is undercall? or completed a call?
-        //cannot call this user when the user is undercall or have completed a call
         try {
-            if (callsMap.has(data.userToCall) && callsMap.get(data.userToCall).completed) {
-                return io.to(data.from).emit('deprecated user', { userToCall: data.userToCall });
-                // throw new Error(`deprecated user: ${data.userToCall}`);
-            }
+            // if (callsMap.has(data.userToCall) && callsMap.get(data.userToCall).completed) {
+            //     return io.to(data.from).emit('deprecated user', { userToCall: data.userToCall });
+            //     // throw new Error(`deprecated user: ${data.userToCall}`);
+            // }
 
             // if (callsMap.has(data.userToCall) && callsMap.get(data.userToCall).undercall) {
             //     return io.to(data.from).emit('beingCalled', { userToCall: data.userToCall });
@@ -75,7 +72,8 @@ io.on('connection', socket => {
                 receiver: data.userToCall,
                 undercall: false,
                 calling: true,
-                completed: false
+                completed: false,
+                channelName: data.channelName
             }
             console.log("event: callUser; callInfo: ", Object.entries(call));
             io.to(data.userToCall).emit('hey', { signal: data.signalData, from: data.from, callInfo: call });
@@ -91,9 +89,9 @@ io.on('connection', socket => {
             console.log("event: acceptCall; callInfo: ", callInfo);
 
             //check if this caller is undercall or have completed a call(deprecated user)
-            if (callsMap.has(data.to) && callsMap.get(data.to).completed) {
-                throw new Error(`deprecated user: ${data.to}`)
-            }
+            // if (callsMap.has(data.to) && callsMap.get(data.to).completed) {
+            //     throw new Error(`deprecated user: ${data.to}`)
+            // }
 
             // if (callsMap.has(data.to) && callsMap.get(data.to).undercall) {
             //     return io.to(data.to).emit('beingCalled', { userToCall: data.to });
@@ -112,21 +110,21 @@ io.on('connection', socket => {
     socket.on("update after successful connection", data => {
         console.log("event: update after successful connection, callInfo: ", data.callInfo);
 
-        callsMap.set(data.callInfo.caller,
-            {
-                peer: data.callInfo.receiver,
-                undercall: data.callInfo.undercall,
-                calling: data.callInfo.calling,
-                completed: data.callInfo.completed
-            });
-        callsMap.set(data.callInfo.receiver,
-            {
-                peer: data.callInfo.caller,
-                undercall: data.callInfo.undercall,
-                calling: data.callInfo.calling,
-                completed: data.callInfo.completed
-            });
-        console.log("event: update after successful connection, callsMap", callsMap.entries());
+        // callsMap.set(data.callInfo.caller,
+        //     {
+        //         peer: data.callInfo.receiver,
+        //         undercall: data.callInfo.undercall,
+        //         calling: data.callInfo.calling,
+        //         completed: data.callInfo.completed
+        //     });
+        // callsMap.set(data.callInfo.receiver,
+        //     {
+        //         peer: data.callInfo.caller,
+        //         undercall: data.callInfo.undercall,
+        //         calling: data.callInfo.calling,
+        //         completed: data.callInfo.completed
+        //     });
+        // console.log("event: update after successful connection, callsMap", callsMap.entries());
         io.to(data.callInfo.receiver).emit("update callInfo", { callInfo: data.callInfo });
     })
 });
