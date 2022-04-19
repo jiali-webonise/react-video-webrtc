@@ -5,6 +5,7 @@ import io from "socket.io-client";
 import Peer from "simple-peer";
 
 let callingInfo;
+let localPeers = [];
 
 function App() {
   const [underCall, setUnderCall] = useState(false);
@@ -28,7 +29,6 @@ function App() {
   const userVideo = useRef();
   // const peersRef = useRef([]);
   const socket = useRef();
-
   useEffect(() => {
     socket.current = io.connect("/");
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
@@ -72,27 +72,34 @@ function App() {
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
-      if (callingInfo?.caller === data.userLeft || callingInfo?.receiver === data.userLeft) {
+      console.log("localPeers: ", localPeers);
+      const peerleft = localPeers.find(peer => {
+        return peer.partnerID === data.userLeft
+      })
+      console.log("found peer: ", peerleft);
+      if (peerleft) {
+        peerleft.peer.destroy();
         //update local callingInfo to send to signaling server
         callingInfo.completed = true;
         callingInfo.undercall = false;
         setCallInfo(callingInfo);
-        setFinishCall(true);
-        // console.log("update local  callingInfo: ", callingInfo);
+        console.log("setPeers localPeers: ", localPeers);
+      }
+      const a = localPeers.filter(p => {
+        if (p.partnerID !== data.userLeft && p.peer._connected) {
+          return p;
+        }
+      });
+      console.log(a.length)
+      if (a.length === 0) {
         setReceivingCall(false);
         setCaller("");
         setCallAccepted(false);
+        setFinishCall(true);
         setUnderCall(false);
-        // console.log(peersRef);
-        peers.find(p => p.partnerID === data.userLeft).peer.destroy();
-        setPeers(peers.map(p => p.partnerID !== data.userLeft))
-        console.log("rest peers: ", p => p.partnerID !== data.userLeft);
-        // const destroyPeer = new Peer();
-        // destroyPeer.destroy();
-        // // peerRef.current = null;
-        // peersRef.current = peersRef.current.map(p => p.peerID !== data.userLeft);
+        setPeers([]);
         socket.current.emit("updateUsers after disconnection", callingInfo);
-        alert("Please refresh your page");
+        // alert("Please refresh your page");
       }
     })
 
@@ -128,6 +135,15 @@ function App() {
       socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID, channelName: peer.channelName })
     })
 
+    peer.on('close', () => {
+      console.log("peer destroy :", id)
+      peer.destroy();
+    })
+
+    peer.on('error', (err) => {
+      console.error(`${JSON.stringify(err)} at callPeer, show peer: ${JSON.stringify(peer)}`);
+    })
+
     // peer.on("stream", stream => {
 
     // });
@@ -145,7 +161,8 @@ function App() {
       })
     })
     //add peer to peers
-    setPeers(prev => [...prev, { peer: peer, partnerID: id }]);
+    setPeers(prev => [...prev, { peer: peer, partnerID: id, completed: false }]);
+    localPeers.push({ peer: peer, partnerID: id });
   }
 
   function acceptCall() {
@@ -162,13 +179,23 @@ function App() {
       socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
     })
 
+    peer.on('error', (err) => {
+      console.error(`${JSON.stringify(err)} at acceptCall, show peer: ${JSON.stringify(peer)}`);
+    })
+
     // peer.on("stream", stream => {
 
     // });
 
-    setPeers(prev => [...prev, { peer: peer, partnerID: caller }]);
+    peer.on('close', () => {
+      console.log("peer destroy :", caller)
+      peer.destroy();
+    })
+
+    setPeers(prev => [...prev, { peer: peer, partnerID: caller, completed: false }]);
     setUnderCall(true);
     peer.signal(callerSignal);
+    localPeers.push({ peer: peer, partnerID: caller });
   }
 
   function exitCall() {
@@ -254,11 +281,11 @@ function App() {
         </div>
         <div className="col col-md">
           <div className="card mt-3">
-            {showPartnerVideo && peers.map((peer, index) => {
+            {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
               return (
                 <>
-                  <Video key={index} peer={peer.peer} />
-                  {console.log(peers)}
+                  <Video key={index} peer={peer.peer} completed={peer.completed} />
+                  {/* {console.log(peers)} */}
                   <div className="card-body">
                     <h5 className="card-title h5">Partner partnerID: </h5>
                     <p className="card-text">{peer.partnerID}</p>
