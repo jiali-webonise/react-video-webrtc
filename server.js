@@ -65,9 +65,9 @@ io.on('connection', socket => {
                 // throw new Error(`deprecated user: ${data.userToCall}`);
             }
 
-            if (callsMap.has(data.userToCall) && callsMap.get(data.userToCall).undercall) {
-                return io.to(data.from).emit('beingCalled', { userToCall: data.userToCall });
-            }
+            // if (callsMap.has(data.userToCall) && callsMap.get(data.userToCall).undercall) {
+            //     return io.to(data.from).emit('beingCalled', { userToCall: data.userToCall });
+            // }
 
             //can call valid user: user that is not under call or haven't completed a call
             const call = {

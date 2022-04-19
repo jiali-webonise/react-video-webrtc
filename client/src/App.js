@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import Video from './components/Video';
 import './App.scss';
 import io from "socket.io-client";
 import Peer from "simple-peer";
@@ -9,21 +10,24 @@ function App() {
   const [underCall, setUnderCall] = useState(false);
   const [finishCall, setFinishCall] = useState(false);
   const [sendCall, setSendCall] = useState(false);
+
   const [yourID, setYourID] = useState("");
-  const [peerID, setPeerID] = useState("");
+  const [peers, setPeers] = useState([]);
+
   const [users, setUsers] = useState({});
   const [stream, setStream] = useState();
   const [receivingCall, setReceivingCall] = useState(false);
   const [caller, setCaller] = useState("");
+
   const [callerSignal, setCallerSignal] = useState();
   const [callAccepted, setCallAccepted] = useState(false);
 
   const [callInfo, setCallInfo] = useState();
+  const showPartnerVideo = callAccepted || underCall;
 
   const userVideo = useRef();
-  const partnerVideo = useRef();
+  // const peersRef = useRef([]);
   const socket = useRef();
-  const peerRef = useRef();
 
   useEffect(() => {
     socket.current = io.connect("/");
@@ -49,17 +53,16 @@ function App() {
     socket.current.on("hey", (data) => {
       setReceivingCall(true);
       setCaller(data.from);
-      setPeerID(data.from);
       setCallerSignal(data.signal);
       setCallInfo(data.callInfo);
       callingInfo = data.callInfo;
     });
 
-    socket.current.on("beingCalled", (data) => {
-      console.log("cannot call: ", data);
-      alert(`Cannot call ${data.userToCall}, this user is under a call`);
-      setSendCall(false);
-    })
+    // socket.current.on("beingCalled", (data) => {
+    //   console.log("cannot call: ", data);
+    //   alert(`Cannot call ${data.userToCall}, this user is under a call`);
+    //   setSendCall(false);
+    // })
 
     socket.current.on("update callInfo", (data) => {
       setCallInfo(data.callInfo);
@@ -75,13 +78,19 @@ function App() {
         callingInfo.undercall = false;
         setCallInfo(callingInfo);
         setFinishCall(true);
-        console.log("update local  callingInfo: ", callingInfo);
+        // console.log("update local  callingInfo: ", callingInfo);
         setReceivingCall(false);
         setCaller("");
         setCallAccepted(false);
         setUnderCall(false);
-        const destroyPeer = new Peer(peerRef.current);
-        destroyPeer.destroy();
+        // console.log(peersRef);
+        peers.find(p => p.partnerID === data.userLeft).peer.destroy();
+        setPeers(peers.map(p => p.partnerID !== data.userLeft))
+        console.log("rest peers: ", p => p.partnerID !== data.userLeft);
+        // const destroyPeer = new Peer();
+        // destroyPeer.destroy();
+        // // peerRef.current = null;
+        // peersRef.current = peersRef.current.map(p => p.peerID !== data.userLeft);
         socket.current.emit("updateUsers after disconnection", callingInfo);
         alert("Please refresh your page");
       }
@@ -119,17 +128,15 @@ function App() {
       socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID })
     })
 
-    peer.on("stream", stream => {
-      if (partnerVideo.current) {
-        partnerVideo.current.srcObject = stream;
-      }
-    });
+    // peer.on("stream", stream => {
+
+    // });
 
     socket.current.on("callAccepted", data => {
       setSendCall(false);
+      setReceivingCall(false);
       setCallInfo(data.callInfo);
       callingInfo = data.callInfo;
-      setPeerID(data.peerID);
       setCallAccepted(true);
       setUnderCall(true);
       peer.signal(data.signal);
@@ -137,28 +144,29 @@ function App() {
         callInfo: data.callInfo
       })
     })
-
-    peerRef.current = peer;
+    //add peer to peers
+    setPeers(prev => [...prev, { peer: peer, partnerID: id }]);
   }
 
   function acceptCall() {
     setSendCall(false);
     setCallAccepted(true);
+    setReceivingCall(false);
     const peer = new Peer({
       initiator: false,
       trickle: false,
       stream: stream,
     });
-    setPeerID(caller);
+
     peer.on("signal", data => {
       socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
     })
 
-    peer.on("stream", stream => {
-      partnerVideo.current.srcObject = stream;
-    });
+    // peer.on("stream", stream => {
 
-    peerRef.current = peer;
+    // });
+
+    setPeers(prev => [...prev, { peer: peer, partnerID: caller }]);
     setUnderCall(true);
     peer.signal(callerSignal);
   }
@@ -168,13 +176,13 @@ function App() {
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    // window.location.href = 'http://localhost:3000/';
+    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    window.location.href = 'http://localhost:3000/';
   }
 
   function leaveRoom() {
-    // window.location.href = 'http://localhost:3000/';
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    window.location.href = 'http://localhost:3000/';
+    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
   }
 
   let UserVideo;
@@ -209,21 +217,6 @@ function App() {
         <button type='button' className='btn btn-info mx-1 my-1' onClick={exitCall}>Exit</button>
       </div>
     </div>)
-  }
-
-  let peerIdComponents;
-  if (underCall) {
-    peerIdComponents = (<div className="card-body">
-      <h5 className="card-title h5">Your peerID: </h5>
-      <p className="card-text">{peerID}</p>
-    </div>)
-  }
-
-  let PartnerVideo;
-  if (callAccepted) {
-    PartnerVideo = (
-      <video className='video-style' playsInline ref={partnerVideo} autoPlay />
-    );
   }
 
   let callingMessage;
@@ -263,8 +256,18 @@ function App() {
         </div>
         <div className="col col-md">
           <div className="card mt-3">
-            {PartnerVideo}
-            {peerIdComponents}
+            {showPartnerVideo && peers.map((peer, index) => {
+              return (
+                <>
+                  <Video key={index} peer={peer.peer} />
+                  {console.log(peers)}
+                  <div className="card-body">
+                    <h5 className="card-title h5">Partner partnerID: </h5>
+                    <p className="card-text">{peer.partnerID}</p>
+                  </div>
+                </>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -280,7 +283,7 @@ function App() {
         })}
       </div>
       <div>
-        {receivingCall && !underCall && incomingCall}
+        {receivingCall && incomingCall}
         {callingMessage}
         {underCall && underCallpeers}
         {callInfoComponent}
