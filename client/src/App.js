@@ -192,8 +192,6 @@ function App() {
     );
   }
 
-
-
   let incomingCall;
   if (receivingCall) {
     incomingCall = (<div className="card mt-3 mb-3">
