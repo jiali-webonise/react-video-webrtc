@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import MediaContainer from './components/MediaContainer';
+import CallInfo from './components/CallInfo';
+import CallInfoList from './components/CallInfoList';
 import './App.scss';
 import io from "socket.io-client";
 import Peer from "simple-peer";
 
 let callingInfo;
+let callingInfoList = [];
 let localPeers = [];
 
 function App() {
@@ -24,6 +27,7 @@ function App() {
   const [callAccepted, setCallAccepted] = useState(false);
 
   const [callInfo, setCallInfo] = useState();
+  const [callInfoList, setCallInfoList] = useState([]);
   const showPartnerVideo = callAccepted || underCall;
 
   const userVideo = useRef();
@@ -54,7 +58,12 @@ function App() {
       setCaller(data.from);
       setCallerSignal(data.signal);
       setCallInfo(data.callInfo);
+      setCallInfoList(prev => {
+        return [...prev, data.callInfo]
+      });
       callingInfo = data.callInfo;
+      callingInfoList.push(data.callInfo);
+      // console.log("callingInfoList: ", callingInfoList);
     });
 
     // socket.current.on("beingCalled", (data) => {
@@ -65,38 +74,82 @@ function App() {
 
     socket.current.on("update callInfo", (data) => {
       setCallInfo(data.callInfo);
+      setCallInfoList(prev => {
+        let newCallinfo = [];
+        const existCallInfo = prev.find(info => (info.channelName === data.callInfo.channelName));
+        if (existCallInfo) {
+          newCallinfo = prev.filter(info => (info.channelName !== data.callInfo.channelName));
+        }
+        newCallinfo.push(data.callInfo);
+        callingInfoList = newCallinfo;
+        return newCallinfo;
+      });
+
       callingInfo = data.callInfo;
+      // console.log("callingInfoList: ", callingInfoList);
     })
 
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
-      const peerleft = localPeers.find(peer => {
-        return peer.partnerID === data.userLeft
-      })
+      const hasThisUser = data.userLeft === callingInfo?.caller || data.userLeft === callingInfo?.receiver;
+      if (callingInfo?.calling && hasThisUser) {
+        console.log("hasThisUser but didn't finish call");
+      }
+      const peerleft = localPeers.find(peer => (peer.partnerID === data.userLeft));
       if (peerleft) {
         peerleft.peer.destroy();
         //update local callingInfo to send to signaling server
-        callingInfo.completed = true;
-        callingInfo.undercall = false;
-        setCallInfo(callingInfo);
-        console.log("localPeers: ", localPeers);
-
-        const restConnectedPeers = localPeers.filter(p => {
-          if (p.partnerID !== data.userLeft && p.peer._connected) {
-            return p;
-          }
-        });
-        if (restConnectedPeers.length === 0) {
-          setReceivingCall(false);
-          setCaller("");
-          setCallAccepted(false);
-          setFinishCall(true);
-          setUnderCall(false);
-          setPeers([]);
-          socket.current.emit("updateUsers after disconnection", callingInfo);
-          alert("Please refresh your page to reconnect");
+        if (callingInfo?.caller === data.userLeft || callingInfo?.receiver === data.userLeft) {
+          callingInfo.completed = true;
+          callingInfo.undercall = false;
         }
+        setCallInfo(callingInfo);
+        let newCallingInfoList = [];
+        const existCallInfo = callingInfoList.find(info => (info?.caller === data.userLeft || info?.receiver === data.userLeft));
+        console.log(existCallInfo);
+        if (existCallInfo) {
+          newCallingInfoList = callingInfoList.filter(info => (info?.channelName !== existCallInfo?.channelName));
+          existCallInfo.completed = true;
+          existCallInfo.undercall = false;
+          newCallingInfoList.push(existCallInfo);
+          callingInfoList = newCallingInfoList;
+          setCallInfoList(callingInfoList);
+          console.log("user left callingInfoList: ", callingInfoList);
+          console.log("user left localPeers: ", localPeers);
+          const restConnectedPeers = localPeers.filter(p => (p.partnerID !== data.userLeft && p.peer._connected));
+          if (restConnectedPeers.length === 0) {
+            setFinishCall(true);
+            socket.current.emit("updateUsers after disconnection", callingInfo);
+            alert("All Peers left, streaming ends");
+            // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+            window.location.href = 'http://localhost:3000/';
+            // setSendCall(false);
+            // setReceivingCall(false);
+            // setPeers([]);
+            // setCaller("");
+            // setCallAccepted(false);
+            // setUnderCall(false);
+            // setCallInfo("");
+            // callingInfo = "";
+          }
+          setSendCall(false);
+          setReceivingCall(false);
+          setFinishCall(false);
+        }
+        // if (callingInfo?.calling && hasThisUser) {
+        //   //deprated user call
+        //   setSendCall(false);
+        //   setReceivingCall(false);
+        //   setPeers([]);
+        //   setCaller("");
+        //   setCallAccepted(false);
+        //   setFinishCall(false);
+        //   setUnderCall(false);
+        //   setCallInfo("");
+        //   callingInfo = "";
+        // }
+
       }
     })
 
@@ -133,7 +186,10 @@ function App() {
     })
 
     peer.on('close', () => {
-      console.log("peer destroy :", id)
+      console.log("peer destroy :", id);
+      // if (peers) {
+      //   setPeers(prev => prev.partnerID !== id);
+      // }
       peer.destroy();
     })
 
@@ -146,7 +202,18 @@ function App() {
       setSendCall(false);
       setReceivingCall(false);
       setCallInfo(data.callInfo);
+      setCallInfoList(prev => {
+        let newCallinfo = [];
+        const existCallInfo = prev.find(info => (info.channelName === data.callInfo.channelName));
+        if (existCallInfo) {
+          newCallinfo = prev.filter(info => (info.channelName !== data.callInfo.channelName));
+        }
+        newCallinfo.push(data.callInfo);
+        callingInfoList = newCallinfo;
+        return newCallinfo;
+      })
       callingInfo = data.callInfo;
+      // console.log("callingInfoList: ", callingInfoList);
       setCallAccepted(true);
       setUnderCall(true);
       peer.signal(data.signal);
@@ -248,15 +315,18 @@ function App() {
   let callInfoComponent;
   if (!finishCall && callInfo) {
     callInfoComponent = (
-      <div className="card border-primary my-2">
-        <div className="card-header h3 bg-light text-primary">
-          Call Information
-        </div>
-        <div className="card-body">
-          {Object.entries(callInfo).map(el => <p className="card-text" key={el[0]}>{el[0]}: {String(el[1])} </p>)}
-        </div>
-      </div>)
+      <CallInfo title={"Recent Call"} callInfo={callInfo} />
+    )
   }
+
+  let callInfoListComponent;
+  if (!finishCall && callInfoList.length > 0) {
+    callInfoListComponent = (
+      <CallInfoList title="Call History" callInfoList={callInfoList} />
+    )
+  }
+
+
 
   return (
     <div className='container container-sm'>
@@ -274,9 +344,7 @@ function App() {
           <div className="card mt-3">
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
               return (
-                <>
-                  <MediaContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
-                </>
+                <MediaContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
               );
             })}
           </div>
@@ -298,6 +366,7 @@ function App() {
         {callingMessage}
         {underCall && underCallpeers}
         {callInfoComponent}
+        {callInfoListComponent}
         {finishCall && <button type='button' className="btn btn-info mt-3" onClick={leaveRoom}>Leave this room to start new call</button>}
       </div>
     </div >
