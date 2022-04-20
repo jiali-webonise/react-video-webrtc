@@ -35,7 +35,6 @@ function App() {
   const showPartnerVideo = callAccepted || underCall;
 
   const [notification, setNotification] = useState("");
-  const alertRef = useRef();
 
   const userVideo = useRef();
   const socket = useRef();
@@ -96,6 +95,7 @@ function App() {
 
     //handle user leave
     socket.current.on("user left", (data) => {
+      // alert(`${data.userLeft} disconnected`);
       showAlert(`${data.userLeft} disconnected`);
       const hasThisUser = data.userLeft === callingInfo?.caller || data.userLeft === callingInfo?.receiver;
       if (callingInfo?.calling && hasThisUser) {
@@ -118,7 +118,7 @@ function App() {
         setCallInfo(callingInfo);
         let newCallingInfoList = [];
         const existCallInfo = callingInfoList.find(info => (info?.caller === data.userLeft || info?.receiver === data.userLeft));
-        // console.log(existCallInfo);
+        console.log(existCallInfo);
         if (!existCallInfo) {
           //Caller calls this user but the user has gone, and its peer object has been destroyed
           //redirect to clean up
@@ -155,13 +155,10 @@ function App() {
 
   const showAlert = (msg) => {
     setNotification(msg);
-    const alertEle = alertRef.current
-    const bsAlert = new Alert(alertEle)
-    alertEle.classList.add('show')
 
     // hide alert after 5 seconds
     setTimeout(() => {
-      bsAlert.close()
+      setNotification('');
     }, 5000)
   }
 
@@ -194,7 +191,14 @@ function App() {
 
     peer.on('close', () => {
       console.log("peer destroy :", id);
+      if (peers) {
+        console.log("peer destroy peer:", peers);
+      }
       peer.destroy();
+    })
+
+    peer.on('connect', () => {
+      console.log('connected')
     })
 
     peer.on('error', (err) => {
@@ -225,7 +229,6 @@ function App() {
         callInfo: data.callInfo
       })
     })
-    //add peer to peers
     setPeers(prev => [...prev, { peer: peer, partnerID: id, completed: false }]);
     localPeers.push({ peer: peer, partnerID: id });
   }
@@ -328,14 +331,18 @@ function App() {
     )
   }
 
+  let notificationAlert = (
+    <div className="card text-dark bg-warning my-3">
+      <div className="card-header">Notification</div>
+      <div className="card-body">
+        <h5 className="card-title">{notification}</h5>
+      </div>
+    </div>
+  )
+
   return (<>
     <div className="container">
-      <div className="position-absolute top-0 end-0 m-4" style={{ zIndex: 3 }}>
-        <div className="alert alert-danger alert-dismissible fade" ref={alertRef} role="alert">
-          {notification}
-          <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      </div>
+      {notification && notificationAlert}
     </div>
     <div className='container container-sm'>
       <div className="row">

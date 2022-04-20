@@ -1,3 +1,3 @@
 # Simple peer webrtc
 
-- Need to Call Sequentically (do not handle call compete among peers)
+- Need to Call Sequentically (do not handle call competition among calls)
