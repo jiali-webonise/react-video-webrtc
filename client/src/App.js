@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import MediaContainer from './components/MediaContainer';
 import CallInfo from './components/CallInfo';
 import CallInfoList from './components/CallInfoList';
+import { Alert } from 'bootstrap';
+
 import './App.scss';
 import io from "socket.io-client";
 import Peer from "simple-peer";
@@ -9,11 +11,10 @@ import Peer from "simple-peer";
 let callingInfo;
 let callingInfoList = [];
 let localPeers = [];
-
+console.log("REACT_APP_ENVIRONMENT: ", process.env.REACT_APP_ENVIRONMENT);
 function App() {
-  console.log("REACT_APP_ENVIRONMENT: ", process.env.REACT_APP_ENVIRONMENT);
   const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'PRODUCTION' ? process.env.REACT_APP_BASE_URL_PROD : process.env.REACT_APP_BASE_URL_DEV;
-  console.log(BASE_URL);
+  // console.log(BASE_URL);
   const [underCall, setUnderCall] = useState(false);
   const [finishCall, setFinishCall] = useState(false);
   const [sendCall, setSendCall] = useState(false);
@@ -32,6 +33,9 @@ function App() {
   const [callInfo, setCallInfo] = useState();
   const [callInfoList, setCallInfoList] = useState([]);
   const showPartnerVideo = callAccepted || underCall;
+
+  const [notification, setNotification] = useState("");
+  const alertRef = useRef();
 
   const userVideo = useRef();
   const socket = useRef();
@@ -92,7 +96,7 @@ function App() {
 
     //handle user leave
     socket.current.on("user left", (data) => {
-      alert(`${data.userLeft} disconnected`);
+      showAlert(`${data.userLeft} disconnected`);
       const hasThisUser = data.userLeft === callingInfo?.caller || data.userLeft === callingInfo?.receiver;
       if (callingInfo?.calling && hasThisUser) {
         console.log("hasThisUser but didn't finish call");
@@ -149,6 +153,18 @@ function App() {
     })
   }, []);
 
+  const showAlert = (msg) => {
+    setNotification(msg);
+    const alertEle = alertRef.current
+    const bsAlert = new Alert(alertEle)
+    alertEle.classList.add('show')
+
+    // hide alert after 5 seconds
+    setTimeout(() => {
+      bsAlert.close()
+    }, 5000)
+  }
+
   function callPeer(id) {
     setSendCall(true);
     const peer = new Peer({
@@ -178,9 +194,6 @@ function App() {
 
     peer.on('close', () => {
       console.log("peer destroy :", id);
-      // if (peers) {
-      //   setPeers(prev => prev.partnerID !== id);
-      // }
       peer.destroy();
     })
 
@@ -315,9 +328,15 @@ function App() {
     )
   }
 
-
-
-  return (
+  return (<>
+    <div className="container">
+      <div className="position-absolute top-0 end-0 m-4" style={{ zIndex: 3 }}>
+        <div className="alert alert-danger alert-dismissible fade" ref={alertRef} role="alert">
+          {notification}
+          <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
     <div className='container container-sm'>
       <div className="row">
         <div className="col col-md">
@@ -358,7 +377,7 @@ function App() {
         {callInfoListComponent}
         {finishCall && <button type='button' className="btn btn-info mt-3" onClick={leaveRoom}>Leave this room to start new call</button>}
       </div>
-    </div >
+    </div ></>
   );
 }
 
