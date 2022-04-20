@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import Video from './components/Video';
+import MediaContainer from './components/MediaContainer';
 import './App.scss';
 import io from "socket.io-client";
 import Peer from "simple-peer";
@@ -27,7 +27,6 @@ function App() {
   const showPartnerVideo = callAccepted || underCall;
 
   const userVideo = useRef();
-  // const peersRef = useRef([]);
   const socket = useRef();
   useEffect(() => {
     socket.current = io.connect("/");
@@ -72,34 +71,32 @@ function App() {
     //handle user leave
     socket.current.on("user left", (data) => {
       alert(`${data.userLeft} disconnected`);
-      console.log("localPeers: ", localPeers);
       const peerleft = localPeers.find(peer => {
         return peer.partnerID === data.userLeft
       })
-      console.log("found peer: ", peerleft);
       if (peerleft) {
         peerleft.peer.destroy();
         //update local callingInfo to send to signaling server
         callingInfo.completed = true;
         callingInfo.undercall = false;
         setCallInfo(callingInfo);
-        console.log("setPeers localPeers: ", localPeers);
-      }
-      const a = localPeers.filter(p => {
-        if (p.partnerID !== data.userLeft && p.peer._connected) {
-          return p;
+        console.log("localPeers: ", localPeers);
+
+        const restConnectedPeers = localPeers.filter(p => {
+          if (p.partnerID !== data.userLeft && p.peer._connected) {
+            return p;
+          }
+        });
+        if (restConnectedPeers.length === 0) {
+          setReceivingCall(false);
+          setCaller("");
+          setCallAccepted(false);
+          setFinishCall(true);
+          setUnderCall(false);
+          setPeers([]);
+          socket.current.emit("updateUsers after disconnection", callingInfo);
+          alert("Please refresh your page to reconnect");
         }
-      });
-      console.log(a.length)
-      if (a.length === 0) {
-        setReceivingCall(false);
-        setCaller("");
-        setCallAccepted(false);
-        setFinishCall(true);
-        setUnderCall(false);
-        setPeers([]);
-        socket.current.emit("updateUsers after disconnection", callingInfo);
-        // alert("Please refresh your page");
       }
     })
 
@@ -141,12 +138,9 @@ function App() {
     })
 
     peer.on('error', (err) => {
-      console.error(`${JSON.stringify(err)} at callPeer, show peer: ${JSON.stringify(peer)}`);
+      console.error(`${JSON.stringify(err)} at callPeer`);
+      console.log("peer at callPeer: ", peer);
     })
-
-    // peer.on("stream", stream => {
-
-    // });
 
     socket.current.on("callAccepted", data => {
       setSendCall(false);
@@ -180,12 +174,9 @@ function App() {
     })
 
     peer.on('error', (err) => {
-      console.error(`${JSON.stringify(err)} at acceptCall, show peer: ${JSON.stringify(peer)}`);
+      console.error(`${JSON.stringify(err)} at acceptCall`);
+      console.log("peer at callPeer: ", peer);
     })
-
-    // peer.on("stream", stream => {
-
-    // });
 
     peer.on('close', () => {
       console.log("peer destroy :", caller)
@@ -284,12 +275,7 @@ function App() {
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
               return (
                 <>
-                  <Video key={index} peer={peer.peer} completed={peer.completed} />
-                  {/* {console.log(peers)} */}
-                  <div className="card-body">
-                    <h5 className="card-title h5">Partner partnerID: </h5>
-                    <p className="card-text">{peer.partnerID}</p>
-                  </div>
+                  <MediaContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
                 </>
               );
             })}
