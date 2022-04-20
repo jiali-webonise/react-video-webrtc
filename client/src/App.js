@@ -11,6 +11,9 @@ let callingInfoList = [];
 let localPeers = [];
 
 function App() {
+  console.log("REACT_APP_ENVIRONMENT: ", process.env.REACT_APP_ENVIRONMENT);
+  const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'PRODUCTION' ? process.env.REACT_APP_BASE_URL_PROD : process.env.REACT_APP_BASE_URL_DEV;
+  console.log(BASE_URL);
   const [underCall, setUnderCall] = useState(false);
   const [finishCall, setFinishCall] = useState(false);
   const [sendCall, setSendCall] = useState(false);
@@ -63,7 +66,6 @@ function App() {
       });
       callingInfo = data.callInfo;
       callingInfoList.push(data.callInfo);
-      // console.log("callingInfoList: ", callingInfoList);
     });
 
     // socket.current.on("beingCalled", (data) => {
@@ -86,7 +88,6 @@ function App() {
       });
 
       callingInfo = data.callInfo;
-      // console.log("callingInfoList: ", callingInfoList);
     })
 
     //handle user leave
@@ -95,6 +96,12 @@ function App() {
       const hasThisUser = data.userLeft === callingInfo?.caller || data.userLeft === callingInfo?.receiver;
       if (callingInfo?.calling && hasThisUser) {
         console.log("hasThisUser but didn't finish call");
+        console.log("peers", peers);
+        console.log("callingInfo: ", callingInfo);
+        console.log("callingInfoList: ", JSON.stringify(callingInfoList));
+        console.log("localPeers: ", JSON.stringify(localPeers));
+        setSendCall(false);
+        setReceivingCall(false);
       }
       const peerleft = localPeers.find(peer => (peer.partnerID === data.userLeft));
       if (peerleft) {
@@ -107,7 +114,12 @@ function App() {
         setCallInfo(callingInfo);
         let newCallingInfoList = [];
         const existCallInfo = callingInfoList.find(info => (info?.caller === data.userLeft || info?.receiver === data.userLeft));
-        console.log(existCallInfo);
+        // console.log(existCallInfo);
+        if (!existCallInfo) {
+          //Caller calls this user but the user has gone, and its peer object has been destroyed
+          //redirect to clean up
+          window.location.href = BASE_URL;
+        }
         if (existCallInfo) {
           newCallingInfoList = callingInfoList.filter(info => (info?.channelName !== existCallInfo?.channelName));
           existCallInfo.completed = true;
@@ -122,34 +134,13 @@ function App() {
             setFinishCall(true);
             socket.current.emit("updateUsers after disconnection", callingInfo);
             alert("All Peers left, streaming ends");
-            // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-            window.location.href = 'http://localhost:3000/';
-            // setSendCall(false);
-            // setReceivingCall(false);
-            // setPeers([]);
-            // setCaller("");
-            // setCallAccepted(false);
-            // setUnderCall(false);
-            // setCallInfo("");
-            // callingInfo = "";
+            //connection ends and clean up by redirect
+            window.location.href = BASE_URL;
           }
           setSendCall(false);
           setReceivingCall(false);
           setFinishCall(false);
         }
-        // if (callingInfo?.calling && hasThisUser) {
-        //   //deprated user call
-        //   setSendCall(false);
-        //   setReceivingCall(false);
-        //   setPeers([]);
-        //   setCaller("");
-        //   setCallAccepted(false);
-        //   setFinishCall(false);
-        //   setUnderCall(false);
-        //   setCallInfo("");
-        //   callingInfo = "";
-        // }
-
       }
     })
 
@@ -261,13 +252,11 @@ function App() {
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = BASE_URL;
   }
 
   function leaveRoom() {
-    window.location.href = 'http://localhost:3000/';
-    // window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+    window.location.href = BASE_URL;
   }
 
   let UserVideo;
