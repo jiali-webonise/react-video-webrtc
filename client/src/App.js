@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import MediaContainer from './components/MediaContainer';
 import CallInfo from './components/CallInfo';
 import CallInfoList from './components/CallInfoList';
+import VideoConatiner from './components/VideoConatiner';
 
 import './App.scss';
 import io from "socket.io-client";
@@ -382,19 +383,9 @@ function App() {
     </div>
     <div className='container container-sm'>
       <div className="row">
-        <div className="col col-md">
-          <div className="card mt-3">
-            {UserVideo}
-            <div className="card-body">
-              <h5 className="card-title h5">Your ID: </h5>
-              <p className="card-text">{yourID}</p>
-            </div>
-            <div className="card-footer d-flex justify-content-center">
-              <button type="button" className="btn btn btn-outline-dark mx-3"><i className="bi bi-mic-fill" style={{ fontSize: 25 }}></i></button>
-              <button type="button" className="btn btn btn-outline-dark mx-3"><i className="bi bi-camera-video-fill" style={{ fontSize: 25 }}></i></button>
-            </div>
-          </div>
-        </div>
+        {/* User's media */}
+        {stream && <VideoConatiner stream={stream} yourID={yourID} />}
+
         <div className="col col-md">
           <div className="card mt-3">
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
