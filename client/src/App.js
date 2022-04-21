@@ -1,49 +1,41 @@
 import React, { useEffect, useState, useRef } from 'react';
-import './App.css';
+import MediaContainer from './components/MediaContainer';
+import CallInfo from './components/CallInfo';
+import CallInfoList from './components/CallInfoList';
+
+import './App.scss';
 import io from "socket.io-client";
 import Peer from "simple-peer";
-import styled from "styled-components";
-
-const Container = styled.div`
-  height: 100vh;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Row = styled.div`
-  display: flex;
-  width: 100%;
-`;
-
-const Video = styled.video`
-  border: 1px solid blue;
-  width: 50%;
-  height: 50%;
-`;
 
 let callingInfo;
-
+let callingInfoList = [];
+let localPeers = [];
+console.log("REACT_APP_ENVIRONMENT: ", process.env.REACT_APP_ENVIRONMENT);
 function App() {
+  const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'PRODUCTION' ? process.env.REACT_APP_BASE_URL_PROD : process.env.REACT_APP_BASE_URL_DEV;
+
   const [underCall, setUnderCall] = useState(false);
-  const [finishCall, setFinishCall] = useState(false);
   const [sendCall, setSendCall] = useState(false);
+
   const [yourID, setYourID] = useState("");
-  const [peerID, setPeerID] = useState("");
+  const [peers, setPeers] = useState([]);
+
   const [users, setUsers] = useState({});
   const [stream, setStream] = useState();
   const [receivingCall, setReceivingCall] = useState(false);
   const [caller, setCaller] = useState("");
+
   const [callerSignal, setCallerSignal] = useState();
   const [callAccepted, setCallAccepted] = useState(false);
 
   const [callInfo, setCallInfo] = useState();
+  const [callInfoList, setCallInfoList] = useState([]);
+  const showPartnerVideo = callAccepted || underCall;
+
+  const [notification, setNotification] = useState("");
 
   const userVideo = useRef();
-  const partnerVideo = useRef();
   const socket = useRef();
-  const peerRef = useRef();
-
   useEffect(() => {
     socket.current = io.connect("/");
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
@@ -68,41 +60,86 @@ function App() {
     socket.current.on("hey", (data) => {
       setReceivingCall(true);
       setCaller(data.from);
-      setPeerID(data.from);
       setCallerSignal(data.signal);
       setCallInfo(data.callInfo);
+      setCallInfoList(prev => {
+        return [...prev, data.callInfo]
+      });
       callingInfo = data.callInfo;
+      callingInfoList.push(data.callInfo);
     });
 
-    socket.current.on("beingCalled", (data) => {
-      console.log("cannot call: ", data);
-      alert(`Cannot call ${data.userToCall}, this user is under a call`);
-      setSendCall(false);
-    })
+    // socket.current.on("beingCalled", (data) => {
+    //   console.log("cannot call: ", data);
+    //   alert(`Cannot call ${data.userToCall}, this user is under a call`);
+    //   setSendCall(false);
+    // })
 
     socket.current.on("update callInfo", (data) => {
       setCallInfo(data.callInfo);
+      setCallInfoList(prev => {
+        let newCallinfo = [];
+        const existCallInfo = prev.find(info => (info.channelName === data.callInfo.channelName));
+        if (existCallInfo) {
+          newCallinfo = prev.filter(info => (info.channelName !== data.callInfo.channelName));
+        }
+        newCallinfo.push(data.callInfo);
+        callingInfoList = newCallinfo;
+        return newCallinfo;
+      });
+
       callingInfo = data.callInfo;
     })
 
     //handle user leave
     socket.current.on("user left", (data) => {
-      alert(`${data.userLeft} disconnected`);
-      if (callingInfo?.caller === data.userLeft || callingInfo?.receiver === data.userLeft) {
-        //update local callingInfo to send to signaling server
-        callingInfo.completed = true;
-        callingInfo.undercall = false;
-        setCallInfo(callingInfo);
-        setFinishCall(true);
-        console.log("update local  callingInfo: ", callingInfo);
+      // alert(`${data.userLeft} disconnected`);
+      showAlert(`${data.userLeft} disconnected`);
+      const hasThisUser = data.userLeft === callingInfo?.caller || data.userLeft === callingInfo?.receiver;
+      if (callingInfo?.calling && hasThisUser) {
+        console.log("hasThisUser but didn't finish call");
+        console.log("peers", peers);
+        console.log("callingInfo: ", callingInfo);
+        console.log("callingInfoList: ", JSON.stringify(callingInfoList));
+        console.log("localPeers: ", JSON.stringify(localPeers));
+        setSendCall(false);
         setReceivingCall(false);
-        setCaller("");
-        setCallAccepted(false);
-        setUnderCall(false);
-        const destroyPeer = new Peer(peerRef.current);
-        destroyPeer.destroy();
-        socket.current.emit("updateUsers after disconnection", callingInfo);
-        alert("Please refresh your page");
+      }
+      const peerleft = localPeers.find(peer => (peer.partnerID === data.userLeft));
+      if (peerleft) {
+        peerleft.peer.destroy();
+        //update local callingInfo to send to signaling server
+        if (callingInfo?.caller === data.userLeft || callingInfo?.receiver === data.userLeft) {
+          callingInfo.completed = true;
+          callingInfo.undercall = false;
+        }
+        setCallInfo(callingInfo);
+        let newCallingInfoList = [];
+        const existCallInfo = callingInfoList.find(info => (info?.caller === data.userLeft || info?.receiver === data.userLeft));
+        console.log(existCallInfo);
+        if (!existCallInfo) {
+          //Caller calls this user but the user has gone, and its peer object has been destroyed
+          //redirect to clean up
+          window.location.href = BASE_URL;
+        }
+        if (existCallInfo) {
+          newCallingInfoList = callingInfoList.filter(info => (info?.channelName !== existCallInfo?.channelName));
+          existCallInfo.completed = true;
+          existCallInfo.undercall = false;
+          newCallingInfoList.push(existCallInfo);
+          callingInfoList = newCallingInfoList;
+          setCallInfoList(callingInfoList);
+          // console.log("user left callingInfoList: ", callingInfoList);
+          // console.log("user left localPeers: ", localPeers);
+          const restConnectedPeers = localPeers.filter(p => (p.partnerID !== data.userLeft && p.peer._connected));
+          if (restConnectedPeers.length === 0) {
+            socket.current.emit("updateUsers after disconnection", callingInfo);
+            alert("All Peers left, streaming ends");
+            window.location.href = BASE_URL;
+          }
+          setSendCall(false);
+          setReceivingCall(false);
+        }
       }
     })
 
@@ -110,6 +147,15 @@ function App() {
       setUsers(users);
     })
   }, []);
+
+  const showAlert = (msg) => {
+    setNotification(msg);
+
+    // hide disconnection alert after 5 seconds
+    setTimeout(() => {
+      setNotification('');
+    }, 5000)
+  }
 
   function callPeer(id) {
     setSendCall(true);
@@ -135,20 +181,42 @@ function App() {
     });
 
     peer.on("signal", data => {
-      socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID })
+      socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID, channelName: peer.channelName })
     })
 
-    peer.on("stream", stream => {
-      if (partnerVideo.current) {
-        partnerVideo.current.srcObject = stream;
+    peer.on('close', () => {
+      console.log("peer destroy :", id);
+      if (peers) {
+        console.log("peer destroy peer:", peers);
       }
-    });
+      peer.destroy();
+    })
+
+    peer.on('connect', () => {
+      console.log('connected')
+    })
+
+    peer.on('error', (err) => {
+      console.error(`${JSON.stringify(err)} at callPeer`);
+      console.log("peer at callPeer: ", peer);
+    })
 
     socket.current.on("callAccepted", data => {
       setSendCall(false);
+      setReceivingCall(false);
       setCallInfo(data.callInfo);
+      setCallInfoList(prev => {
+        let newCallinfo = [];
+        const existCallInfo = prev.find(info => (info.channelName === data.callInfo.channelName));
+        if (existCallInfo) {
+          newCallinfo = prev.filter(info => (info.channelName !== data.callInfo.channelName));
+        }
+        newCallinfo.push(data.callInfo);
+        callingInfoList = newCallinfo;
+        return newCallinfo;
+      })
       callingInfo = data.callInfo;
-      setPeerID(data.peerID);
+      // console.log("callingInfoList: ", callingInfoList);
       setCallAccepted(true);
       setUnderCall(true);
       peer.signal(data.signal);
@@ -156,30 +224,38 @@ function App() {
         callInfo: data.callInfo
       })
     })
-
-    peerRef.current = peer;
+    setPeers(prev => [...prev, { peer: peer, partnerID: id, completed: false }]);
+    localPeers.push({ peer: peer, partnerID: id });
   }
 
   function acceptCall() {
     setSendCall(false);
     setCallAccepted(true);
+    setReceivingCall(false);
     const peer = new Peer({
       initiator: false,
       trickle: false,
       stream: stream,
     });
-    setPeerID(caller);
+
     peer.on("signal", data => {
       socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
     })
 
-    peer.on("stream", stream => {
-      partnerVideo.current.srcObject = stream;
-    });
+    peer.on('error', (err) => {
+      console.error(`${JSON.stringify(err)} at acceptCall`);
+      console.log("peer at callPeer: ", peer);
+    })
 
-    peerRef.current = peer;
+    peer.on('close', () => {
+      console.log("peer destroy :", caller)
+      peer.destroy();
+    })
+
+    setPeers(prev => [...prev, { peer: peer, partnerID: caller, completed: false }]);
     setUnderCall(true);
     peer.signal(callerSignal);
+    localPeers.push({ peer: peer, partnerID: caller });
   }
 
   function exitCall() {
@@ -187,76 +263,130 @@ function App() {
     setReceivingCall(false);
     setCallAccepted(false);
     alert("You just disconnected");
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
-    // window.location.href = 'http://localhost:3000/';
+    window.location.href = BASE_URL;
   }
 
-  function leaveRoom() {
-    // window.location.href = 'http://localhost:3000/';
-    window.location.href = 'https://simple-peer-webrtc.herokuapp.com/';
+  function rejectCall() {
+    setUnderCall(false);
+    setReceivingCall(false);
+    setCallAccepted(false);
+    //emit reject socket
+    console.log("user left callingInfoList: ", callingInfoList);
+    console.log("user left localPeers: ", localPeers);
+    // setPeers([]);
+
   }
 
   let UserVideo;
   if (stream) {
     UserVideo = (
-      <Video playsInline muted ref={userVideo} autoPlay />
-    );
-  }
-
-  let PartnerVideo;
-  if (callAccepted) {
-    PartnerVideo = (
-      <Video playsInline ref={partnerVideo} autoPlay />
+      <video className='video-style' playsInline muted ref={userVideo} autoPlay />
     );
   }
 
   let incomingCall;
   if (receivingCall) {
-    incomingCall = (
-      <div>
-        <h1>{caller} is calling you</h1>
-        <button onClick={acceptCall}>Accept</button>
+    incomingCall = (<div className="card mt-3 mb-3">
+      <h5 className="card-header h3 bg-light text-primary">Incoming Call...</h5>
+      <div className="card-body">
+        {caller} is calling you
+        <button type='button' className='btn btn-info mx-3' onClick={acceptCall}>Accept</button>
+        <button type='button' className='btn btn-danger mx-3' onClick={rejectCall}>Reject</button>
       </div>
+    </div>
     )
   }
 
   let underCallpeers;
   if (underCall) {
-    const msg = `Connected!`;
-    underCallpeers = (<div>
-      <h1>{msg}</h1>
-      <button onClick={exitCall}>Exit</button>
+    underCallpeers = (<div className="card border-success my-2">
+      <div className="card-header bg-success h3 text-white">
+        Status
+      </div>
+      <div className="card-body disply-6">
+        Connected!
+        <button type='button' className='btn btn-info mx-1 my-1' onClick={exitCall}>Exit</button>
+      </div>
     </div>)
   }
-  return (
-    <Container>
-      <Row>
-        {UserVideo}
-        {PartnerVideo}
-      </Row>
-      <p>Your ID: {yourID}</p>
-      {underCall && <p>Your peerID: {peerID}</p>}
-      <Row>
-        {users && !finishCall && !underCall && Object.keys(users).map(key => {
+
+  let callingMessage;
+  if (sendCall && !callAccepted) {
+    callingMessage = (<div className="card mt-3 mb-3">
+      <h5 className="card-header h3 bg-light text-primary">Calling...</h5>
+      <div className="card-body">
+        Waiting for response
+      </div>
+    </div>)
+  }
+
+  let callInfoComponent;
+  if (callInfo) {
+    callInfoComponent = (
+      <CallInfo title={"Recent Call"} callInfo={callInfo} />
+    )
+  }
+
+  let callInfoListComponent;
+  if (callInfoList.length > 0) {
+    callInfoListComponent = (
+      <CallInfoList title="Call History" callInfoList={callInfoList} />
+    )
+  }
+
+  let notificationAlert = (
+    <div className="card text-dark bg-warning my-3">
+      <div className="card-header">Notification</div>
+      <div className="card-body">
+        <h5 className="card-title">{notification}</h5>
+      </div>
+    </div>
+  )
+
+  return (<>
+    <div className="container">
+      {notification && notificationAlert}
+    </div>
+    <div className='container container-sm'>
+      <div className="row">
+        <div className="col col-md">
+          <div className="card mt-3">
+            {UserVideo}
+            <div className="card-body">
+              <h5 className="card-title h5">Your ID: </h5>
+              <p className="card-text">{yourID}</p>
+            </div>
+          </div>
+        </div>
+        <div className="col col-md">
+          <div className="card mt-3">
+            {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
+              return (
+                <MediaContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <div>
+        {users && !receivingCall && !sendCall && !underCall && Object.keys(users).map(key => {
           if (key === yourID) {
             return null;
           }
 
           return (
-            <button key={key} onClick={() => callPeer(key)}>Call {key}</button>
+            <button type='button' className="btn btn-primary mt-3 me-3" key={key} onClick={() => callPeer(key)}>Call {key}</button>
           );
         })}
-      </Row>
-      <Row>
-        {receivingCall && !underCall && incomingCall}
-        {sendCall && !callAccepted && <p>Calling...waiting for response</p>}
+      </div>
+      <div>
+        {receivingCall && incomingCall}
+        {callingMessage}
         {underCall && underCallpeers}
-        <ul>
-          {!finishCall && callInfo && Object.entries(callInfo).map(el => <li key={el[0]}>{el[0]}: {String(el[1])}</li>)}
-        </ul>
-        {finishCall && <button onClick={leaveRoom}>Leave this room to start new call</button>}
-      </Row>
-    </Container>
+        {callInfoComponent}
+        {callInfoListComponent}
+      </div>
+    </div ></>
   );
 }
 
