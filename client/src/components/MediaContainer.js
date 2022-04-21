@@ -3,10 +3,15 @@ import React, { useEffect, useRef, useState } from 'react';
 const MediaContainer = (props) => {
     const ref = useRef();
     const [show, setShow] = useState(true);
+    const [stream, setStream] = useState();
 
     useEffect(() => {
+        setStream(props.peer.stream);
+        ref.current.srcObject = stream;
+
         props.peer.on("stream", stream => {
             console.log("stream mediacontainer", stream);
+            setStream(stream);
             ref.current.srcObject = stream;
         })
 
@@ -37,6 +42,10 @@ const MediaContainer = (props) => {
             <div className="card-body">
                 <h5 className="card-title h5">Partner partnerID: </h5>
                 <p className="card-text">{props.partnerID}</p>
+            </div>
+            <div className="card-footer d-flex justify-content-center">
+                <button type="button" className="btn btn btn-outline-dark mx-3"><i className="bi bi-mic-fill" style={{ fontSize: 25 }}></i></button>
+                <button type="button" className="btn btn btn-outline-dark mx-3"><i className="bi bi-camera-video-fill" style={{ fontSize: 25 }}></i></button>
             </div>
         </>)
 

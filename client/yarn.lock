@@ -1899,6 +1899,11 @@
   resolved "https://registry.yarnpkg.com/@nodelib/fs.stat/-/fs.stat-1.1.3.tgz#2b5a3ab3f918cca48a8c754c08168e3f03eba61b"
   integrity sha512-shAmDyaQC4H92APFoIaVDHCx5bStIocgvbwQyxPRrbUY20V1EYTbSDchWbuwlMG3V17cprZhA6+78JfB+3DTPw==
 
+"@popperjs/core@^2.10.2":
+  version "2.11.5"
+  resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.5.tgz#db5a11bf66bdab39569719555b0f76e138d7bd64"
+  integrity sha512-9X2obfABZuDVLCgPK9aX0a/x4jaOEweTTWE2+9sr0Qqqevj2Uv5XorvusThmc9XGYpS9yI+fhh8RTafBtGposw==
+
 "@sheerun/mutationobserver-shim@^0.3.2":
   version "0.3.3"
   resolved "https://registry.yarnpkg.com/@sheerun/mutationobserver-shim/-/mutationobserver-shim-0.3.3.tgz#5405ee8e444ed212db44e79351f0c70a582aae25"
@@ -3134,6 +3139,11 @@ boolbase@^1.0.0, boolbase@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/boolbase/-/boolbase-1.0.0.tgz#68dff5fbe60c51eb37725ea9e3ed310dcc1e776e"
   integrity sha1-aN/1++YMUes3cl6p4+0xDcwed24=
+
+bootstrap-icons@^1.8.1:
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/bootstrap-icons/-/bootstrap-icons-1.8.1.tgz#773c1625bcbf3e86090ea9da4386c2c6459c5582"
+  integrity sha512-IXUqislddPJfwq6H+2nTkHyr9epO9h6u1AG0OZCx616w+TgzeoCjfmI3qJMQqt1J586gN2IxzB4M99Ip4sTZ1w==
 
 bootstrap@^5.1.3:
   version "5.1.3"

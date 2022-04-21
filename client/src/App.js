@@ -389,6 +389,10 @@ function App() {
               <h5 className="card-title h5">Your ID: </h5>
               <p className="card-text">{yourID}</p>
             </div>
+            <div className="card-footer d-flex justify-content-center">
+              <button type="button" className="btn btn btn-outline-dark mx-3"><i className="bi bi-mic-fill" style={{ fontSize: 25 }}></i></button>
+              <button type="button" className="btn btn btn-outline-dark mx-3"><i className="bi bi-camera-video-fill" style={{ fontSize: 25 }}></i></button>
+            </div>
           </div>
         </div>
         <div className="col col-md">
