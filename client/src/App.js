@@ -17,26 +17,27 @@ function App() {
 
   const [underCall, setUnderCall] = useState(false);
   const [sendCall, setSendCall] = useState(false);
+  const [receivingCall, setReceivingCall] = useState(false);
+  const [callAccepted, setCallAccepted] = useState(false);
+  const showPartnerVideo = callAccepted || underCall;
 
   const [yourID, setYourID] = useState("");
   const [peers, setPeers] = useState([]);
 
   const [users, setUsers] = useState({});
   const [stream, setStream] = useState();
-  const [receivingCall, setReceivingCall] = useState(false);
-  const [caller, setCaller] = useState("");
 
+  const [caller, setCaller] = useState("");
   const [callerSignal, setCallerSignal] = useState();
-  const [callAccepted, setCallAccepted] = useState(false);
 
   const [callInfo, setCallInfo] = useState();
   const [callInfoList, setCallInfoList] = useState([]);
-  const showPartnerVideo = callAccepted || underCall;
 
   const [notification, setNotification] = useState("");
 
   const userVideo = useRef();
   const socket = useRef();
+
   useEffect(() => {
     socket.current = io.connect("/");
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
@@ -296,7 +297,9 @@ function App() {
   }
 
   function rejectCall() {
-    setUnderCall(false);
+    if (!peers || peers.length === 0) {
+      setUnderCall(false);
+    }
     setReceivingCall(false);
     setCallAccepted(false);
     const updatedCallInfo = { ...callInfo, rejected: true };

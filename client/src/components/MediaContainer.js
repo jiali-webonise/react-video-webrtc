@@ -27,6 +27,13 @@ const MediaContainer = (props) => {
         props.peer.on("connect", () => {
             // console.log("MediaContainer peer connected....")
             ref.current = props.peer;
+        });
+
+        props.peer.on('track', (track, stream) => {
+            console.log("on track", track);
+            console.log("on track: stream", stream);
+            ref.current.srcObject = stream;
+            // ref.current.srcObject = e.streams[0];
         })
 
         props.peer.on('error', (err) => {
