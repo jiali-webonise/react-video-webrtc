@@ -61,6 +61,13 @@ io.on('connection', socket => {
         }
     })
 
+    socket.on("rejectCall", data => {
+        console.log("event: rejectCall, callInfo: ", data.callInfo);
+        io.to(data.callInfo.caller).emit("reject call", {
+            callInfo: data.callInfo, from: data.callInfo.caller
+        });
+    })
+
     socket.on("update after successful connection", data => {
         console.log("event: update after successful connection, callInfo: ", data.callInfo);
         io.to(data.callInfo.receiver).emit("update callInfo", { callInfo: data.callInfo });

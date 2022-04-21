@@ -6,8 +6,8 @@ const CallInfoList = (props) => {
                 {props.title}
             </div>
             <div className="card-body">
-                {props.callInfoList.length > 0 && props.callInfoList.map(info => {
-                    return <p key={info.channelName}>{JSON.stringify(info)}</p>
+                {props.callInfoList.length > 0 && props.callInfoList.map((info, index) => {
+                    return <p key={info.channelName + index}>{JSON.stringify(info)}</p>
                 })}
             </div>
         </div>

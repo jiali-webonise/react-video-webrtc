@@ -6,6 +6,7 @@ const MediaContainer = (props) => {
 
     useEffect(() => {
         props.peer.on("stream", stream => {
+            console.log("stream mediacontainer", stream);
             ref.current.srcObject = stream;
         })
 
