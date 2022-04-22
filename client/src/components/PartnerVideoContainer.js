@@ -63,12 +63,18 @@ const PartnerVideoContainer = (props) => {
 
     const micHandler = () => {
         if (audioTrack.enabled) {
-            // show camera
+            // disable mic
             audioTrack.enabled = false;
+            console.log("Manager turn off PartnerVideoContainer audio: ", props.partnerID)
+            props.onTurnOffAduioSocket(props.partnerID)
+            //show enable mic icon
             setShowAudio(true);
         } else {
-            // hide camera
+            // enable mic
             audioTrack.enabled = true;
+            console.log("Manager turn on PartnerVideoContainer audio: ", props.partnerID)
+            props.onTurnOnAudioSocket(props.partnerID)
+            //show disable mic icon
             setShowAudio(false);
         }
     }

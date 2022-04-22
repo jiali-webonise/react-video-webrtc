@@ -10,7 +10,22 @@ const VideoConatiner = (props) => {
                 userVideo.current.srcObject = props.stream;
             }
         }
-    }, [props.stream]);
+        if (props.yourAudioStatus) {
+            props.stream.getTracks().find(track => track.kind === 'audio').enabled = true;
+            setShowAudio(false);
+        } else {
+            props.stream.getTracks().find(track => track.kind === 'audio').enabled = false;
+            setShowAudio(true);
+        }
+
+        // if (props.yourVideoStatus) {
+        //     props.stream.getTracks().find(track => track.kind === 'video').enabled = true;
+        //     setShowVideo(false);
+        // } else {
+        //     props.stream.getTracks().find(track => track.kind === 'video').enabled = false;
+        //     setShowVideo(false);
+        // }
+    }, [props.stream, props.yourAudioStatus, props.yourVideoStatus]);
 
     const micHandler = () => {
         const audioTrack = props.stream.getTracks().find(track => track.kind === 'audio');

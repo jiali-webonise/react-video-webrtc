@@ -22,6 +22,9 @@ function App() {
   const showPartnerVideo = callAccepted || underCall;
 
   const [yourID, setYourID] = useState("");
+  // const [yourVideoStatus, setYourVideoStatus] = useState(true);
+  const [yourAudioStatus, setYourAudioStatus] = useState(true);
+
   const [peers, setPeers] = useState([]);
 
   const [users, setUsers] = useState({});
@@ -170,6 +173,16 @@ function App() {
     socket.current.on("refresh users", (users) => {
       setUsers(users);
     })
+
+    socket.current.on("turnOnAudio", (data) => {
+      console.log(`${data.requestId} turn on ${data.partnerID}'s audio`);
+      setYourAudioStatus(true)//on
+    })
+
+    socket.current.on("turnOffAudio", (data) => {
+      console.log(`${data.requestId} turn off ${data.partnerID}'s audio`);
+      setYourAudioStatus(false)//off
+    })
   }, []);
 
   const showAlert = (msg) => {
@@ -179,6 +192,16 @@ function App() {
     setTimeout(() => {
       setNotification('');
     }, 5000)
+  }
+
+  const turnOnPartnerAudioSocketHandler = (id) => {
+    console.log("App Manager turn on PartnerVideoContainer audio: ", id)
+    socket.current.emit('turn on audio', { requestId: yourID, partnerID: id });
+  }
+
+  const turnOffPartnerAudioSocketHandler = (id) => {
+    console.log("App Manager turn off PartnerVideoContainer audio: ", id)
+    socket.current.emit('turn off audio', { requestId: yourID, partnerID: id });
   }
 
   function callPeer(id) {
@@ -387,13 +410,20 @@ function App() {
     <div className='container container-sm'>
       <div className="row">
         {/* User's media */}
-        {stream && <VideoConatiner stream={stream} yourID={yourID} />}
+        {stream && <VideoConatiner stream={stream} yourID={yourID} yourAudioStatus={yourAudioStatus} />}
+        {/*  yourVideoStatus={yourVideoStatus} */}
 
         <div className="col col-md">
           <div className="card mt-3">
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
               return (
-                <PartnerVideoContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
+                <PartnerVideoContainer
+                  key={index}
+                  peer={peer.peer}
+                  partnerID={peer.partnerID}
+                  onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
+                  onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
+                />
               );
             })}
           </div>

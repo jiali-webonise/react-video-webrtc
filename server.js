@@ -72,6 +72,18 @@ io.on('connection', socket => {
         console.log("event: update after successful connection, callInfo: ", data.callInfo);
         io.to(data.callInfo.receiver).emit("update callInfo", { callInfo: data.callInfo });
     })
+
+    socket.on('turn on audio', data => {
+        console.log(`${data.requestId} turn on ${data.partnerID}'s audio`);
+        console.log("data: ", JSON.stringify(data));
+        io.to(data.partnerID).emit("turnOnAudio", data);
+    });
+
+    socket.on('turn off audio', data => {
+        console.log(`${data.requestId} turn off ${data.partnerID}'s audio`);
+        console.log("data: ", JSON.stringify(data));
+        io.to(data.partnerID).emit("turnOffAudio", data);
+    });
 });
 
 if (process.env.PROD) {
