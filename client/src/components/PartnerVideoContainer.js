@@ -52,14 +52,13 @@ const PartnerVideoContainer = (props) => {
             console.log("error peer: ", props.peer);
         })
 
-        if (props.partnerAudioStatus) {
+        if (props.partnerAudioStatus.userId === props.partnerID) {
             let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
-            track.enabled = true;
+            track.enabled = props.partnerAudioStatus.status;
             setAudioTrack(track);
-            setShowAudio(false);
+            setShowAudio(!props.partnerAudioStatus.status);
         } else {
             let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
-            track.enabled = false;
             setAudioTrack(track);
             setShowAudio(true);
         }

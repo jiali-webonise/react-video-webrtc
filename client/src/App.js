@@ -412,29 +412,16 @@ function App() {
         <div className="col col-md">
           <div className="card mt-3">
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
-              if (peer.partnerID === partnerAudioStatus.userId) {
-                return (
-                  <PartnerVideoContainer
-                    key={index}
-                    peer={peer.peer}
-                    partnerID={peer.partnerID}
-                    partnerAudioStatus={partnerAudioStatus.status}
-                    onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
-                    onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
-                  />
-                );
-              } else {
-                return (
-                  <PartnerVideoContainer
-                    key={index}
-                    peer={peer.peer}
-                    partnerID={peer.partnerID}
-                    partnerAudioStatus={true}
-                    onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
-                    onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
-                  />
-                );
-              }
+              return (
+                <PartnerVideoContainer
+                  key={index}
+                  peer={peer.peer}
+                  partnerID={peer.partnerID}
+                  partnerAudioStatus={partnerAudioStatus}
+                  onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
+                  onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
+                />
+              );
             })}
           </div>
         </div>
