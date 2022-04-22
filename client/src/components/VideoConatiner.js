@@ -10,6 +10,7 @@ const VideoConatiner = (props) => {
                 userVideo.current.srcObject = props.stream;
             }
         }
+
         if (props.yourAudioStatus) {
             props.stream.getTracks().find(track => track.kind === 'audio').enabled = true;
             setShowAudio(false);
@@ -30,12 +31,14 @@ const VideoConatiner = (props) => {
     const micHandler = () => {
         const audioTrack = props.stream.getTracks().find(track => track.kind === 'audio');
         if (audioTrack.enabled) {
-            // show camera
+            // disable mic
             audioTrack.enabled = false;
+            //show enable mic icon
             setShowAudio(true);
         } else {
+            // enable mic
             audioTrack.enabled = true;
-            // hide camera
+            //show disable mic icon
             setShowAudio(false);
         }
     }

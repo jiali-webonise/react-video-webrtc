@@ -34,7 +34,6 @@ const PartnerVideoContainer = (props) => {
                 setAudioTrack(track);
             }
 
-
             // if (track.kind === 'video') {
             //     setVideoTrack(track);
             // }
@@ -44,9 +43,8 @@ const PartnerVideoContainer = (props) => {
             // if (track.kind === 'video' && !track.enabled) {
             //     setShowVideo(true);
             // }
-            // console.log("on track: stream", stream);
+
             ref.current.srcObject = stream;
-            // ref.current.srcObject = e.streams[0];
         })
 
         props.peer.on('error', (err) => {
