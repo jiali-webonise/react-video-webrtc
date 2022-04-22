@@ -64,7 +64,7 @@ const PartnerVideoContainer = (props) => {
             setShowAudio(true);
         }
 
-    }, [props.peer]);
+    }, [props.peer, props.partnerAudioStatus]);
 
     const micHandler = () => {
         if (audioTrack.enabled) {

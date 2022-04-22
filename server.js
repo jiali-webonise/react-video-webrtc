@@ -82,6 +82,16 @@ io.on('connection', socket => {
         console.log(`${data.requestId} turns off ${data.partnerID}'s audio`);
         io.to(data.partnerID).emit("turnOffPartnerAudio", data);
     });
+
+    socket.on('turn on user audio', data => {
+        console.log(`Broadcasting: ${data.userId} turns on audio`)
+        socket.broadcast.emit("unmute user", { userId: socket.id });
+    });
+
+    socket.on('turn off user audio', data => {
+        console.log(`Broadcasting: ${data.userId} turns off audio`)
+        socket.broadcast.emit("mute user", { userId: socket.id });
+    });
 });
 
 if (process.env.PROD) {

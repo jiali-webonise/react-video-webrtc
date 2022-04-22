@@ -33,11 +33,14 @@ const VideoConatiner = (props) => {
         if (audioTrack.enabled) {
             // disable mic
             audioTrack.enabled = false;
+            props.onTurnOnAudioSocket(props.yourID);
             //show enable mic icon
             setShowAudio(true);
+
         } else {
             // enable mic
             audioTrack.enabled = true;
+            props.onTurnOffAduioSocket(props.yourID);
             //show disable mic icon
             setShowAudio(false);
         }

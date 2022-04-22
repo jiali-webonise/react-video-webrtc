@@ -24,7 +24,7 @@ function App() {
   const [yourID, setYourID] = useState("");
   // const [yourVideoStatus, setYourVideoStatus] = useState(true);
   const [yourAudioStatus, setYourAudioStatus] = useState(true);
-  const [partnerAudioStatus, setPartnerAudioStatus] = useState(true);
+  const [partnerAudioStatus, setPartnerAudioStatus] = useState({ userId: "", status: true });
 
   const [peers, setPeers] = useState([]);
 
@@ -155,19 +155,31 @@ function App() {
     })
 
     socket.current.on("turnOnPartnerAudio", (data) => {
-      // console.log(`${data.requestId} turn on ${data.partnerID}'s audio`);
       setYourAudioStatus(true)//on
     })
 
     socket.current.on("turnOffPartnerAudio", (data) => {
-      // console.log(`${data.requestId} turn off ${data.partnerID}'s audio`);
       setYourAudioStatus(false)//off
+    })
+
+    socket.current.on("unmute user", (data) => {
+      console.log(`unmute ${data.userId}`);
+      setPartnerAudioStatus({
+        userId: data.userId
+        , status: true
+      });
+    })
+    socket.current.on("mute user", (data) => {
+      console.log(`mute ${data.userId}`);
+      setPartnerAudioStatus({
+        userId: data.userId
+        , status: false
+      });
     })
   }, []);
 
   const showAlert = (msg) => {
     setNotification(msg);
-
     // hide disconnection alert after 5 seconds
     setTimeout(() => {
       setNotification('');
@@ -176,15 +188,25 @@ function App() {
 
   const turnOnPartnerAudioSocketHandler = (id) => {
     if (underCall) {
-      // console.log(`${yourID} turn on PartnerVideoContainer ${id} audio: `);
       socket.current.emit('turn on partner audio', { requestId: yourID, partnerID: id });
     }
   }
 
   const turnOffPartnerAudioSocketHandler = (id) => {
     if (underCall) {
-      // console.log(`${yourID} turn off PartnerVideoContainer ${id} audio: `);
       socket.current.emit('turn off partner audio', { requestId: yourID, partnerID: id });
+    }
+  }
+
+  const turnOnAudioSocketHandler = (id) => {
+    if (underCall) {
+      socket.current.emit('turn on user audio', { userId: id });//all connect partners
+    }
+  }
+
+  const turnOffAudioSocketHandler = (id) => {
+    if (underCall) {
+      socket.current.emit('turn off user audio', { userId: id });
     }
   }
 
@@ -379,22 +401,40 @@ function App() {
     <div className='container container-sm'>
       <div className="row">
         {/* User's media */}
-        {stream && <VideoConatiner stream={stream} yourID={yourID} yourAudioStatus={yourAudioStatus} />}
-        {/*  yourVideoStatus={yourVideoStatus} */}
+        {stream && <VideoConatiner
+          stream={stream}
+          yourID={yourID}
+          yourAudioStatus={yourAudioStatus}
+          onTurnOffAduioSocket={turnOnAudioSocketHandler}
+          onTurnOnAudioSocket={turnOffAudioSocketHandler}
+        />}
 
         <div className="col col-md">
           <div className="card mt-3">
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
-              return (
-                <PartnerVideoContainer
-                  key={index}
-                  peer={peer.peer}
-                  partnerID={peer.partnerID}
-                  partnerAudioStatus={partnerAudioStatus}
-                  onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
-                  onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
-                />
-              );
+              if (peer.partnerID === partnerAudioStatus.userId) {
+                return (
+                  <PartnerVideoContainer
+                    key={index}
+                    peer={peer.peer}
+                    partnerID={peer.partnerID}
+                    partnerAudioStatus={partnerAudioStatus.status}
+                    onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
+                    onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
+                  />
+                );
+              } else {
+                return (
+                  <PartnerVideoContainer
+                    key={index}
+                    peer={peer.peer}
+                    partnerID={peer.partnerID}
+                    partnerAudioStatus={true}
+                    onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
+                    onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
+                  />
+                );
+              }
             })}
           </div>
         </div>
