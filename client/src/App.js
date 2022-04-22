@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import MediaContainer from './components/MediaContainer';
+import PartnerVideoContainer from './components/PartnerVideoContainer';
 import CallInfo from './components/CallInfo';
 import CallInfoList from './components/CallInfoList';
 import VideoConatiner from './components/VideoConatiner';
@@ -393,7 +393,7 @@ function App() {
           <div className="card mt-3">
             {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
               return (
-                <MediaContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
+                <PartnerVideoContainer key={index} peer={peer.peer} partnerID={peer.partnerID} />
               );
             })}
           </div>
