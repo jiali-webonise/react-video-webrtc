@@ -41,7 +41,6 @@ const VideoConatiner = (props) => {
     }
 
     const videoHandler = () => {
-        console.log(props.stream.getTracks())
         const videoTrack = props.stream.getTracks().find(track => track.kind === 'video');
         if (videoTrack.enabled) {
             // show camera

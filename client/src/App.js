@@ -24,6 +24,7 @@ function App() {
   const [yourID, setYourID] = useState("");
   // const [yourVideoStatus, setYourVideoStatus] = useState(true);
   const [yourAudioStatus, setYourAudioStatus] = useState(true);
+  const [partnerAudioStatus, setPartnerAudioStatus] = useState(true);
 
   const [peers, setPeers] = useState([]);
 
@@ -37,17 +38,12 @@ function App() {
   const [callInfoList, setCallInfoList] = useState([]);
 
   const [notification, setNotification] = useState("");
-
-  const userVideo = useRef();
   const socket = useRef();
 
   useEffect(() => {
     socket.current = io.connect("/");
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
       setStream(stream);
-      if (userVideo.current) {
-        userVideo.current.srcObject = stream;
-      }
     })
 
     socket.current.on("yourID", (id) => {
@@ -81,19 +77,8 @@ function App() {
       callingInfoList.push(data.callInfo);
       setCallInfoList(prev => [...prev, data.callInfo]);
       setSendCall(false);
-      console.log("reject call callingInfoList: ", callingInfoList);
-      console.log("reject call localPeers: ", localPeers);
       //reset peers
       setPeers([]);
-      // if (localPeers.length > 1) {
-      //   const rejectedPeer = localPeers.filter(p => p.partnerID === data.from);
-      //   console.log("rejected localPeers:", rejectedPeer);
-      //   rejectedPeers.push(rejectedPeer.peer._id);
-      //   console.log("rejected peers:", rejectedPeers)
-      //   // setPeers(localPeers);
-      // } else {
-      //   setPeers([]);
-      // }
     });
 
     // socket.current.on("beingCalled", (data) => {
@@ -125,10 +110,6 @@ function App() {
       const hasThisUser = data.userLeft === callingInfo?.caller || data.userLeft === callingInfo?.receiver;
       if (callingInfo?.calling && hasThisUser) {
         console.log("hasThisUser but didn't finish call");
-        console.log("peers", peers);
-        console.log("callingInfo: ", callingInfo);
-        console.log("callingInfoList: ", JSON.stringify(callingInfoList));
-        console.log("localPeers: ", JSON.stringify(localPeers));
         setSendCall(false);
         setReceivingCall(false);
       }
@@ -143,7 +124,7 @@ function App() {
         setCallInfo(callingInfo);
         let newCallingInfoList = [];
         const existCallInfo = callingInfoList.find(info => (info?.caller === data.userLeft || info?.receiver === data.userLeft));
-        console.log(existCallInfo);
+
         if (!existCallInfo) {
           //Caller calls this user but the user has gone, and its peer object has been destroyed
           //redirect to clean up
@@ -156,8 +137,7 @@ function App() {
           newCallingInfoList.push(existCallInfo);
           callingInfoList = newCallingInfoList;
           setCallInfoList(callingInfoList);
-          // console.log("user left callingInfoList: ", callingInfoList);
-          // console.log("user left localPeers: ", localPeers);
+
           const restConnectedPeers = localPeers.filter(p => (p.partnerID !== data.userLeft && p.peer._connected));
           if (restConnectedPeers.length === 0) {
             socket.current.emit("updateUsers after disconnection", callingInfo);
@@ -174,13 +154,13 @@ function App() {
       setUsers(users);
     })
 
-    socket.current.on("turnOnAudio", (data) => {
-      console.log(`${data.requestId} turn on ${data.partnerID}'s audio`);
+    socket.current.on("turnOnPartnerAudio", (data) => {
+      // console.log(`${data.requestId} turn on ${data.partnerID}'s audio`);
       setYourAudioStatus(true)//on
     })
 
-    socket.current.on("turnOffAudio", (data) => {
-      console.log(`${data.requestId} turn off ${data.partnerID}'s audio`);
+    socket.current.on("turnOffPartnerAudio", (data) => {
+      // console.log(`${data.requestId} turn off ${data.partnerID}'s audio`);
       setYourAudioStatus(false)//off
     })
   }, []);
@@ -195,13 +175,17 @@ function App() {
   }
 
   const turnOnPartnerAudioSocketHandler = (id) => {
-    console.log("App Manager turn on PartnerVideoContainer audio: ", id)
-    socket.current.emit('turn on audio', { requestId: yourID, partnerID: id });
+    if (underCall) {
+      // console.log(`${yourID} turn on PartnerVideoContainer ${id} audio: `);
+      socket.current.emit('turn on partner audio', { requestId: yourID, partnerID: id });
+    }
   }
 
   const turnOffPartnerAudioSocketHandler = (id) => {
-    console.log("App Manager turn off PartnerVideoContainer audio: ", id)
-    socket.current.emit('turn off audio', { requestId: yourID, partnerID: id });
+    if (underCall) {
+      // console.log(`${yourID} turn off PartnerVideoContainer ${id} audio: `);
+      socket.current.emit('turn off partner audio', { requestId: yourID, partnerID: id });
+    }
   }
 
   function callPeer(id) {
@@ -240,14 +224,8 @@ function App() {
       peer.destroy();
     })
 
-    peer.on("stream", stream => {
-      // ref.current.srcObject = stream;
-      console.log("stream app js", stream);
-    })
-
-    peer.on('connect', () => {
-      console.log('connected')
-    })
+    // peer.on('connect', () => {
+    // })
 
     peer.on('error', (err) => {
       console.error(`${JSON.stringify(err)} at callPeer`);
@@ -333,15 +311,6 @@ function App() {
     socket.current.emit("rejectCall", {
       callInfo: updatedCallInfo
     });
-    console.log('localPeers when reject', localPeers);
-    console.log("peers: ", peers);
-  }
-
-  let UserVideo;
-  if (stream) {
-    UserVideo = (
-      <video className='video-style' playsInline muted ref={userVideo} autoPlay />
-    );
   }
 
   let incomingCall;
@@ -421,6 +390,7 @@ function App() {
                   key={index}
                   peer={peer.peer}
                   partnerID={peer.partnerID}
+                  partnerAudioStatus={partnerAudioStatus}
                   onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
                   onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
                 />

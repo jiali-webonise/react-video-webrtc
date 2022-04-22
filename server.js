@@ -73,16 +73,14 @@ io.on('connection', socket => {
         io.to(data.callInfo.receiver).emit("update callInfo", { callInfo: data.callInfo });
     })
 
-    socket.on('turn on audio', data => {
-        console.log(`${data.requestId} turn on ${data.partnerID}'s audio`);
-        console.log("data: ", JSON.stringify(data));
-        io.to(data.partnerID).emit("turnOnAudio", data);
+    socket.on('turn on partner audio', data => {
+        console.log(`${data.requestId} turns on ${data.partnerID}'s audio`);
+        io.to(data.partnerID).emit("turnOnPartnerAudio", data);
     });
 
-    socket.on('turn off audio', data => {
-        console.log(`${data.requestId} turn off ${data.partnerID}'s audio`);
-        console.log("data: ", JSON.stringify(data));
-        io.to(data.partnerID).emit("turnOffAudio", data);
+    socket.on('turn off partner audio', data => {
+        console.log(`${data.requestId} turns off ${data.partnerID}'s audio`);
+        io.to(data.partnerID).emit("turnOffPartnerAudio", data);
     });
 });
 

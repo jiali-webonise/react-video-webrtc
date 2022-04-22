@@ -10,10 +10,9 @@ const PartnerVideoContainer = (props) => {
     const [showAudio, setShowAudio] = useState(false);
 
     useEffect(() => {
-        ref.current.srcObject = props.peer.stream;
+        ref.current.srcObject = props.peer.streams[0];
 
         props.peer.on("stream", stream => {
-            console.log("stream mediacontainer", stream);
             ref.current.srcObject = stream;
         })
 
@@ -29,26 +28,22 @@ const PartnerVideoContainer = (props) => {
         // });
 
         props.peer.on('track', (track, stream) => {
-            console.log("on track", track);
-            console.log("on track", track.kind);
             if (track.kind === 'audio') {
+                track.enabled = props.partnerAudioStatus;
+                setShowAudio(!props.partnerAudioStatus);
                 setAudioTrack(track);
             }
-            if (track.kind === 'video') {
-                setVideoTrack(track);
-            }
-            if (track.kind === 'audio' && track.enabled) {
-                setShowAudio(false);
-            }
-            if (track.kind === 'audio' && !track.enabled) {
-                setShowAudio(true);
-            }
-            if (track.kind === 'video' && track.enabled) {
-                setShowVideo(false);
-            }
-            if (track.kind === 'video' && !track.enabled) {
-                setShowVideo(true);
-            }
+
+
+            // if (track.kind === 'video') {
+            //     setVideoTrack(track);
+            // }
+            // if (track.kind === 'video' && track.enabled) {
+            //     setShowVideo(false);
+            // }
+            // if (track.kind === 'video' && !track.enabled) {
+            //     setShowVideo(true);
+            // }
             // console.log("on track: stream", stream);
             ref.current.srcObject = stream;
             // ref.current.srcObject = e.streams[0];
@@ -56,8 +51,20 @@ const PartnerVideoContainer = (props) => {
 
         props.peer.on('error', (err) => {
             console.error(`${JSON.stringify(err)} at MediaContainer error`);
-            console.log("peer: ", props.peer);
+            console.log("error peer: ", props.peer);
         })
+
+        if (props.partnerAudioStatus) {
+            let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
+            track.enabled = true;
+            setAudioTrack(track);
+            setShowAudio(false);
+        } else {
+            let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
+            track.enabled = false;
+            setAudioTrack(track);
+            setShowAudio(true);
+        }
 
     }, [props.peer]);
 
@@ -65,14 +72,12 @@ const PartnerVideoContainer = (props) => {
         if (audioTrack.enabled) {
             // disable mic
             audioTrack.enabled = false;
-            console.log("Manager turn off PartnerVideoContainer audio: ", props.partnerID)
-            props.onTurnOffAduioSocket(props.partnerID)
+            props.onTurnOffAduioSocket(props.partnerID);
             //show enable mic icon
             setShowAudio(true);
         } else {
             // enable mic
             audioTrack.enabled = true;
-            console.log("Manager turn on PartnerVideoContainer audio: ", props.partnerID)
             props.onTurnOnAudioSocket(props.partnerID)
             //show disable mic icon
             setShowAudio(false);
