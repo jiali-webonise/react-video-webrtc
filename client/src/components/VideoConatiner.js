@@ -3,6 +3,8 @@ const VideoConatiner = (props) => {
     const userVideo = useRef();
     const [showVideo, setShowVideo] = useState(false);
     const [showAudio, setShowAudio] = useState(false);
+    const audioTrack = props.stream?.getTracks()?.find(track => track.kind === 'audio');
+    const videoTrack = props.stream.getTracks().find(track => track.kind === 'video');
 
     useEffect(() => {
         if (props.stream) {
@@ -11,25 +13,17 @@ const VideoConatiner = (props) => {
             }
         }
 
-        if (props.yourAudioStatus) {
-            props.stream.getTracks().find(track => track.kind === 'audio').enabled = true;
+        audioTrack.enabled = props.yourAudioStatus;
+
+        if (audioTrack.enabled) {
             setShowAudio(false);
         } else {
-            props.stream.getTracks().find(track => track.kind === 'audio').enabled = false;
             setShowAudio(true);
         }
 
-        // if (props.yourVideoStatus) {
-        //     props.stream.getTracks().find(track => track.kind === 'video').enabled = true;
-        //     setShowVideo(false);
-        // } else {
-        //     props.stream.getTracks().find(track => track.kind === 'video').enabled = false;
-        //     setShowVideo(false);
-        // }
-    }, [props.stream, props.yourAudioStatus, props.yourVideoStatus]);
+    }, [props.stream, props.yourAudioStatus]);//, props.yourVideoStatus
 
     const micHandler = () => {
-        const audioTrack = props.stream.getTracks().find(track => track.kind === 'audio');
         if (audioTrack.enabled) {
             // disable mic
             audioTrack.enabled = false;
@@ -47,7 +41,6 @@ const VideoConatiner = (props) => {
     }
 
     const videoHandler = () => {
-        const videoTrack = props.stream.getTracks().find(track => track.kind === 'video');
         if (videoTrack.enabled) {
             // show camera
             videoTrack.enabled = false;
@@ -71,6 +64,7 @@ const VideoConatiner = (props) => {
                 <div className="card-body">
                     <h5 className="card-title h5">Your ID: </h5>
                     <p className="card-text">{props.yourID}</p>
+                    <p className="card-text">Audio ID: {audioTrack.id}</p>
                 </div>
                 <div className="card-footer d-flex justify-content-center">
                     {!showAudio && micOnComponent}
