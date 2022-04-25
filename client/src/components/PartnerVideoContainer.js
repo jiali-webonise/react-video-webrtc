@@ -3,79 +3,49 @@ import React, { useEffect, useRef, useState } from 'react';
 const PartnerVideoContainer = (props) => {
     const ref = useRef();
     const [show, setShow] = useState(true);
-    // const [audioTrack, setAudioTrack] = useState();
+    const [audioTrack, setAudioTrack] = useState();
     const [videoTrack, setVideoTrack] = useState();
-    let audioTrack = props.peer.streams[0]?.getTracks()?.find(track => track.kind === 'audio');
+
     const [showVideo, setShowVideo] = useState(false);
     const [showAudio, setShowAudio] = useState(false);
 
     useEffect(() => {
-        ref.current.srcObject = props.peer.streams[0];
-
-        // props.peer.on("stream", stream => {
-        //     ref.current.srcObject = stream;
-        // })
+        props.peer.on("stream", stream => {
+            ref.current.srcObject = stream;
+            const audio = stream.getTracks()?.find(track => track.kind === 'audio');
+            audio.enabled = props.partnerAudioStatus.status;
+            setAudioTrack(audio);
+            setShowAudio(!props.partnerAudioStatus.status);
+        })
 
         props.peer.on("close", () => {
             setShow(false);
             ref.current = null;
             props.peer.destroy();
-        })
-
-        // props.peer.on("connect", () => {
-        //     // console.log("MediaContainer peer connected....")
-        //     ref.current = props.peer;
-        // });
-
-        // props.peer.on('track', (track, stream) => {
-        //     if (track.kind === 'audio') {
-        //         track.enabled = props.partnerAudioStatus;
-        //         setShowAudio(!props.partnerAudioStatus);
-        //         setAudioTrack(track);
-        //     }
-
-        //     // if (track.kind === 'video') {
-        //     //     setVideoTrack(track);
-        //     // }
-        //     // if (track.kind === 'video' && track.enabled) {
-        //     //     setShowVideo(false);
-        //     // }
-        //     // if (track.kind === 'video' && !track.enabled) {
-        //     //     setShowVideo(true);
-        //     // }
-
-        //     ref.current.srcObject = stream;
-        // })
+        });
 
         props.peer.on('error', (err) => {
             console.error(`${JSON.stringify(err)} at MediaContainer error`);
             console.log("error peer: ", props.peer);
-        })
-
-        if (props.partnerAudioStatus.userId === props.partnerID) {
-            // let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
-            audioTrack.enabled = props.partnerAudioStatus.status;
-            // setAudioTrack(track);
-            setShowAudio(!props.partnerAudioStatus.status);
-        } else {
-            // let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
-            // setAudioTrack(track);
-            audioTrack.enabled = true;
-            setShowAudio(true);
-        }
+        });
 
     }, [props.peer, props.partnerAudioStatus]);
 
     const micHandler = () => {
-        if (audioTrack.enabled) {
+        if (audioTrack?.enabled) {
             // disable mic
-            audioTrack.enabled = false;
+            const audio = audioTrack;
+            audio.enabled = false;
+            setAudioTrack(audio);
             props.onTurnOffAduioSocket(props.partnerID);
             //show enable mic icon
             setShowAudio(true);
         } else {
             // enable mic
+            const audio = audioTrack;
             audioTrack.enabled = true;
+            setAudioTrack(audio);
+
             props.onTurnOnAudioSocket(props.partnerID)
             //show disable mic icon
             setShowAudio(false);
@@ -108,8 +78,8 @@ const PartnerVideoContainer = (props) => {
                 <p className="card-text">Audio ID: {audioTrack?.id}</p>
             </div>
             <div className="card-footer d-flex justify-content-center">
-                {!showAudio && micOnComponent}
-                {showAudio && micOffComponent}
+                {!showAudio && audioTrack && micOnComponent}
+                {showAudio && audioTrack && micOffComponent}
                 {!showVideo && videoOnComponent}
                 {showVideo && videoOffComponent}
             </div>
