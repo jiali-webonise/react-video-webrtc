@@ -24,7 +24,7 @@ function App() {
   const [yourID, setYourID] = useState("");
   // const [yourVideoStatus, setYourVideoStatus] = useState(true);
   const [yourAudioStatus, setYourAudioStatus] = useState(true);
-  const [partnerAudioStatus, setPartnerAudioStatus] = useState({ userId: "", status: true });
+  const [partnerAudioStatus, setPartnerAudioStatus] = useState({});
 
   const [peers, setPeers] = useState([]);
 
@@ -44,14 +44,15 @@ function App() {
     socket.current = io.connect("/");
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
       setStream(stream);
-    })
+    });
 
     socket.current.on("yourID", (id) => {
       setYourID(id);
-    })
+    });
+
     socket.current.on("allUsers", (users) => {
       setUsers(users);
-    })
+    });
 
     socket.current.on("deprecated user", (data) => {
       alert(`Cannot call ${data.userToCall}, this user is deprecated`);
@@ -66,6 +67,11 @@ function App() {
       setCallInfoList(prev => {
         return [...prev, data.callInfo]
       });
+      setPartnerAudioStatus({
+        userId: data.callInfo.caller
+        , status: true
+      });
+      console.log("hey partnerAudioStatus", partnerAudioStatus);
       callingInfo = data.callInfo;
       callingInfoList.push(data.callInfo);
     });
@@ -101,7 +107,7 @@ function App() {
       });
 
       callingInfo = data.callInfo;
-    })
+    });
 
     //handle user leave
     socket.current.on("user left", (data) => {
@@ -148,34 +154,48 @@ function App() {
           setReceivingCall(false);
         }
       }
-    })
+    });
 
     socket.current.on("refresh users", (users) => {
       setUsers(users);
-    })
+    });
 
     socket.current.on("turnOnPartnerAudio", (data) => {
       setYourAudioStatus(true)//on
-    })
+    });
 
     socket.current.on("turnOffPartnerAudio", (data) => {
       setYourAudioStatus(false)//off
-    })
+    });
 
     socket.current.on("unmute user", (data) => {
       console.log(`unmute ${data.userId}`);
-      setPartnerAudioStatus({
+      const update = {
         userId: data.userId
         , status: true
-      });
-    })
+      }
+      setPartnerAudioStatus(prev => {
+        prev.status = true;
+        return prev;
+      });//not updating, is empty
+      console.log("unmute partnerAudioStatus", partnerAudioStatus);
+      console.log("unmute update", update);
+    });
+
     socket.current.on("mute user", (data) => {
       console.log(`mute ${data.userId}`);
-      setPartnerAudioStatus({
+      const update = {
         userId: data.userId
         , status: false
-      });
-    })
+      }
+      setPartnerAudioStatus(prev => {
+        prev.status = false;
+        return prev;
+      });//not updating, is empty
+      console.log("mute partnerAudioStatus", partnerAudioStatus);
+      console.log("mute update", update);
+    });
+
   }, []);
 
   const showAlert = (msg) => {
@@ -198,15 +218,15 @@ function App() {
     }
   }
 
-  const turnOnAudioSocketHandler = (id) => {
+  const turnOnSelfAudioSocketHandler = (id) => {
     if (underCall) {
-      socket.current.emit('turn on user audio', { userId: id });//all connect partners
+      socket.current.emit('turn on self audio', { userId: id });//all connect partners
     }
   }
 
-  const turnOffAudioSocketHandler = (id) => {
+  const turnOffSelfAudioSocketHandler = (id) => {
     if (underCall) {
-      socket.current.emit('turn off user audio', { userId: id });
+      socket.current.emit('turn off self audio', { userId: id });
     }
   }
 
@@ -275,10 +295,12 @@ function App() {
       peer.signal(data.signal);
       socket.current.emit("update after successful connection", {
         callInfo: data.callInfo
-      })
+      });
     })
     setPeers(prev => [...prev, { peer: peer, partnerID: id }]);
     localPeers.push({ peer: peer, partnerID: id });
+    setPartnerAudioStatus({ userId: id, status: true });
+    console.log("call peer partnerAudioStatus", partnerAudioStatus);
   }
 
   function acceptCall() {
@@ -405,8 +427,8 @@ function App() {
           stream={stream}
           yourID={yourID}
           yourAudioStatus={yourAudioStatus}
-          onTurnOffAduioSocket={turnOnAudioSocketHandler}
-          onTurnOnAudioSocket={turnOffAudioSocketHandler}
+          onTurnOffAduioSocket={turnOffSelfAudioSocketHandler}
+          onTurnOnAudioSocket={turnOnSelfAudioSocketHandler}
         />}
 
         <div className="col col-md">

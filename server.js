@@ -83,12 +83,12 @@ io.on('connection', socket => {
         io.to(data.partnerID).emit("turnOffPartnerAudio", data);
     });
 
-    socket.on('turn on user audio', data => {
+    socket.on('turn on self audio', data => {
         console.log(`Broadcasting: ${data.userId} turns on audio`)
         socket.broadcast.emit("unmute user", { userId: socket.id });
     });
 
-    socket.on('turn off user audio', data => {
+    socket.on('turn off self audio', data => {
         console.log(`Broadcasting: ${data.userId} turns off audio`)
         socket.broadcast.emit("mute user", { userId: socket.id });
     });

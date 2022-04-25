@@ -13,7 +13,7 @@ const PartnerVideoContainer = (props) => {
         props.peer.on("stream", stream => {
             ref.current.srcObject = stream;
             const audio = stream.getTracks()?.find(track => track.kind === 'audio');
-            console.log("props.partnerAudioStatus", props.partnerAudioStatus);
+            console.log("on stream props.partnerAudioStatus", props.partnerAudioStatus);
             if (props.partnerAudioStatus.userId === props.peer.partnerID) {
                 audio.enabled = props.partnerAudioStatus.status;
             }
@@ -32,7 +32,14 @@ const PartnerVideoContainer = (props) => {
             console.log("error peer: ", props.peer);
         });
 
-    }, [props.peer, props.partnerAudioStatus]);
+        if (props.partnerAudioStatus.userId === props.peer.partnerID) {
+            const audio = audioTrack;
+            audio.enabled = props.partnerAudioStatus.status;
+            setAudioTrack(audio);
+            setShowAudio(!audio.enabled);
+        }
+
+    }, [props.peer, props.partnerAudioStatus.userId, props.partnerAudioStatus.status]);
 
     const micHandler = () => {
         if (audioTrack?.enabled) {
