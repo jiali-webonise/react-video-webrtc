@@ -3,18 +3,18 @@ import React, { useEffect, useRef, useState } from 'react';
 const PartnerVideoContainer = (props) => {
     const ref = useRef();
     const [show, setShow] = useState(true);
-    const [audioTrack, setAudioTrack] = useState();
+    // const [audioTrack, setAudioTrack] = useState();
     const [videoTrack, setVideoTrack] = useState();
-
+    let audioTrack = props.peer.streams[0]?.getTracks()?.find(track => track.kind === 'audio');
     const [showVideo, setShowVideo] = useState(false);
     const [showAudio, setShowAudio] = useState(false);
 
     useEffect(() => {
         ref.current.srcObject = props.peer.streams[0];
 
-        props.peer.on("stream", stream => {
-            ref.current.srcObject = stream;
-        })
+        // props.peer.on("stream", stream => {
+        //     ref.current.srcObject = stream;
+        // })
 
         props.peer.on("close", () => {
             setShow(false);
@@ -27,25 +27,25 @@ const PartnerVideoContainer = (props) => {
         //     ref.current = props.peer;
         // });
 
-        props.peer.on('track', (track, stream) => {
-            if (track.kind === 'audio') {
-                track.enabled = props.partnerAudioStatus;
-                setShowAudio(!props.partnerAudioStatus);
-                setAudioTrack(track);
-            }
+        // props.peer.on('track', (track, stream) => {
+        //     if (track.kind === 'audio') {
+        //         track.enabled = props.partnerAudioStatus;
+        //         setShowAudio(!props.partnerAudioStatus);
+        //         setAudioTrack(track);
+        //     }
 
-            // if (track.kind === 'video') {
-            //     setVideoTrack(track);
-            // }
-            // if (track.kind === 'video' && track.enabled) {
-            //     setShowVideo(false);
-            // }
-            // if (track.kind === 'video' && !track.enabled) {
-            //     setShowVideo(true);
-            // }
+        //     // if (track.kind === 'video') {
+        //     //     setVideoTrack(track);
+        //     // }
+        //     // if (track.kind === 'video' && track.enabled) {
+        //     //     setShowVideo(false);
+        //     // }
+        //     // if (track.kind === 'video' && !track.enabled) {
+        //     //     setShowVideo(true);
+        //     // }
 
-            ref.current.srcObject = stream;
-        })
+        //     ref.current.srcObject = stream;
+        // })
 
         props.peer.on('error', (err) => {
             console.error(`${JSON.stringify(err)} at MediaContainer error`);
@@ -53,13 +53,14 @@ const PartnerVideoContainer = (props) => {
         })
 
         if (props.partnerAudioStatus.userId === props.partnerID) {
-            let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
-            track.enabled = props.partnerAudioStatus.status;
-            setAudioTrack(track);
+            // let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
+            audioTrack.enabled = props.partnerAudioStatus.status;
+            // setAudioTrack(track);
             setShowAudio(!props.partnerAudioStatus.status);
         } else {
-            let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
-            setAudioTrack(track);
+            // let track = props.peer.streams[0].getTracks().find(track => track.kind === 'audio')
+            // setAudioTrack(track);
+            audioTrack.enabled = true;
             setShowAudio(true);
         }
 
@@ -104,6 +105,7 @@ const PartnerVideoContainer = (props) => {
             <div className="card-body">
                 <h5 className="card-title h5">Partner ID: </h5>
                 <p className="card-text">{props.partnerID}</p>
+                <p className="card-text">Audio ID: {audioTrack?.id}</p>
             </div>
             <div className="card-footer d-flex justify-content-center">
                 {!showAudio && micOnComponent}
