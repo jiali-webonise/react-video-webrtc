@@ -69,9 +69,9 @@ function App() {
       setCallInfoList(prev => {
         return [...prev, data.callInfo]
       });
-      setPartnerAudioStatus(true);
+      setPartnerAudioStatus(data.callerAudioStatus);
       setPartnerAudioUserId(data.from);
-      console.log("hey partnerAudioStatus", partnerAudioStatus);
+      console.log("hey partnerAudioStatus", data.callerAudioStatus);
       callingInfo = data.callInfo;
       callingInfoList.push(data.callInfo);
     });
@@ -170,26 +170,16 @@ function App() {
 
     socket.current.on("unmute user", (data) => {
       console.log(`unmute ${data.userId}`);
-      const update = {
-        userId: data.userId
-        , status: true
-      }
       setPartnerAudioStatus(true);
       setPartnerAudioUserId(data.userId);
       console.log("unmute partnerAudioStatus", partnerAudioStatus);
-      console.log("unmute update", update);
     });
 
     socket.current.on("mute user", (data) => {
       console.log(`mute ${data.userId}`);
-      const update = {
-        userId: data.userId
-        , status: false
-      }
       setPartnerAudioStatus(false);
       setPartnerAudioUserId(data.userId);
       console.log("mute partnerAudioStatus", partnerAudioStatus);
-      console.log("mute update", update);
     });
 
   }, []);
@@ -214,13 +204,17 @@ function App() {
     }
   }
 
-  const turnOnSelfAudioSocketHandler = (id) => {
+  const turnOnSelfAudioSocketHandler = (id, status) => {
+    setYourAudioStatus(status);
+    console.log('turnOnSelfAudioSocketHandler', status)
     if (underCall) {
       socket.current.emit('turn on self audio', { userId: id });//all connect partners
     }
   }
 
-  const turnOffSelfAudioSocketHandler = (id) => {
+  const turnOffSelfAudioSocketHandler = (id, status) => {
+    setYourAudioStatus(status);
+    console.log('turnOffSelfAudioSocketHandler', status)
     if (underCall) {
       socket.current.emit('turn off self audio', { userId: id });
     }
@@ -251,7 +245,13 @@ function App() {
     });
 
     peer.on("signal", data => {
-      socket.current.emit("callUser", { userToCall: id, signalData: data, from: yourID, channelName: peer.channelName })
+      socket.current.emit("callUser", {
+        userToCall: id,
+        signalData: data,
+        from: yourID,
+        channelName: peer.channelName,
+        callerAudioStatus: yourAudioStatus
+      })
     })
 
     peer.on('close', () => {
@@ -292,11 +292,11 @@ function App() {
       socket.current.emit("update after successful connection", {
         callInfo: data.callInfo
       });
+      setPartnerAudioStatus(data.receiverAudioStatus);
+      setPartnerAudioUserId(data.peerID);
     })
     setPeers(prev => [...prev, { peer: peer, partnerID: id }]);
     localPeers.push({ peer: peer, partnerID: id });
-    setPartnerAudioStatus(true);
-    setPartnerAudioUserId(id);
     console.log("call peer partnerAudioStatus", partnerAudioStatus);
   }
 
@@ -304,6 +304,8 @@ function App() {
     setSendCall(false);
     setCallAccepted(true);
     setReceivingCall(false);
+    setPartnerAudioStatus(callInfo.callerAudioStatus);
+    setPartnerAudioUserId(callInfo.caller);
     const peer = new Peer({
       initiator: false,
       trickle: false,
@@ -311,7 +313,13 @@ function App() {
     });
 
     peer.on("signal", data => {
-      socket.current.emit("acceptCall", { signal: data, to: caller, from: yourID, callInfo: callInfo })
+      socket.current.emit("acceptCall", {
+        signal: data,
+        to: caller,
+        from: yourID,
+        callInfo: callInfo,
+        receiverAudioStatus: yourAudioStatus
+      })
     })
 
     peer.on('error', (err) => {

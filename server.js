@@ -38,10 +38,11 @@ io.on('connection', socket => {
                 undercall: false,
                 calling: true,
                 completed: false,
-                channelName: data.channelName
+                channelName: data.channelName,
+                callerAudioStatus: data.callerAudioStatus
             }
             console.log("event: callUser; callInfo: ", Object.entries(call));
-            io.to(data.userToCall).emit('hey', { signal: data.signalData, from: data.from, callInfo: call });
+            io.to(data.userToCall).emit('hey', { signal: data.signalData, from: data.from, callInfo: call, callerAudioStatus: data.callerAudioStatus });
         } catch (error) {
             console.error(error);
         }
@@ -54,8 +55,14 @@ io.on('connection', socket => {
             console.log("event: acceptCall; callInfo: ", callInfo);
             callInfo.undercall = true;
             callInfo.calling = false;
+            callInfo.receiverAudioStatus = data.receiverAudioStatus
             console.log(`event: acceptCall; updated callInfo: `, callInfo);
-            io.to(data.to).emit('callAccepted', { signal: data.signal, peerID: data.from, callInfo: callInfo });
+            io.to(data.to).emit('callAccepted', {
+                signal: data.signal,
+                peerID: data.from,
+                callInfo: callInfo,
+                receiverAudioStatus: data.receiverAudioStatus
+            });
         } catch (error) {
             console.error(error)
         }
