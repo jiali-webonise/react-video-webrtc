@@ -10,6 +10,11 @@ const PartnerVideoContainer = (props) => {
         props.peer.on("stream", stream => {
             ref.current.srcObject = stream;
             const audio = stream.getTracks()?.find(track => track.kind === 'audio');
+            if (props.partnerAudioUserId === props.partnerID) {
+                audio.enabled = props.partnerAudioStatus;
+                setAudioTrack(audio);
+                setShowAudio(!props.partnerAudioStatus);
+            }
             setAudioTrack(audio);
             setShowAudio(!audio.enabled);
         })
