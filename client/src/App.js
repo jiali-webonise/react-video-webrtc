@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import PartnerVideoContainer from './components/PartnerVideoContainer';
+import PeersVideo from './components/PeersVideo';
 import CallInfo from './components/CallInfo';
 import CallInfoList from './components/CallInfoList';
 import VideoConatiner from './components/VideoConatiner';
@@ -12,6 +12,7 @@ let callingInfo;
 let callingInfoList = [];
 let localPeers = [];
 console.log("REACT_APP_ENVIRONMENT: ", process.env.REACT_APP_ENVIRONMENT);
+
 function App() {
   const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'PRODUCTION' ? process.env.REACT_APP_BASE_URL_PROD : process.env.REACT_APP_BASE_URL_DEV;
 
@@ -24,7 +25,8 @@ function App() {
   const [yourID, setYourID] = useState("");
   // const [yourVideoStatus, setYourVideoStatus] = useState(true);
   const [yourAudioStatus, setYourAudioStatus] = useState(true);
-  const [partnerAudioStatus, setPartnerAudioStatus] = useState({});
+  const [partnerAudioUserId, setPartnerAudioUserId] = useState("");
+  const [partnerAudioStatus, setPartnerAudioStatus] = useState(true);
 
   const [peers, setPeers] = useState([]);
 
@@ -67,10 +69,8 @@ function App() {
       setCallInfoList(prev => {
         return [...prev, data.callInfo]
       });
-      setPartnerAudioStatus({
-        userId: data.callInfo.caller
-        , status: true
-      });
+      setPartnerAudioStatus(true);
+      setPartnerAudioUserId(data.from);
       console.log("hey partnerAudioStatus", partnerAudioStatus);
       callingInfo = data.callInfo;
       callingInfoList.push(data.callInfo);
@@ -174,10 +174,8 @@ function App() {
         userId: data.userId
         , status: true
       }
-      setPartnerAudioStatus(prev => {
-        prev.status = true;
-        return prev;
-      });//not updating, is empty
+      setPartnerAudioStatus(true);
+      setPartnerAudioUserId(data.userId);
       console.log("unmute partnerAudioStatus", partnerAudioStatus);
       console.log("unmute update", update);
     });
@@ -188,10 +186,8 @@ function App() {
         userId: data.userId
         , status: false
       }
-      setPartnerAudioStatus(prev => {
-        prev.status = false;
-        return prev;
-      });//not updating, is empty
+      setPartnerAudioStatus(false);
+      setPartnerAudioUserId(data.userId);
       console.log("mute partnerAudioStatus", partnerAudioStatus);
       console.log("mute update", update);
     });
@@ -299,7 +295,8 @@ function App() {
     })
     setPeers(prev => [...prev, { peer: peer, partnerID: id }]);
     localPeers.push({ peer: peer, partnerID: id });
-    setPartnerAudioStatus({ userId: id, status: true });
+    setPartnerAudioStatus(true);
+    setPartnerAudioUserId(id);
     console.log("call peer partnerAudioStatus", partnerAudioStatus);
   }
 
@@ -433,18 +430,14 @@ function App() {
 
         <div className="col col-md">
           <div className="card mt-3">
-            {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
-              return (
-                <PartnerVideoContainer
-                  key={index}
-                  peer={peer.peer}
-                  partnerID={peer.partnerID}
-                  partnerAudioStatus={partnerAudioStatus}
-                  onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
-                  onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
-                />
-              );
-            })}
+            <PeersVideo
+              showPartnerVideo={showPartnerVideo}
+              peers={peers}
+              partnerAudioUserId={partnerAudioUserId}
+              partnerAudioStatus={partnerAudioStatus}
+              onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
+              onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
+            />
           </div>
         </div>
       </div>

@@ -13,10 +13,6 @@ const PartnerVideoContainer = (props) => {
         props.peer.on("stream", stream => {
             ref.current.srcObject = stream;
             const audio = stream.getTracks()?.find(track => track.kind === 'audio');
-            console.log("on stream props.partnerAudioStatus", props.partnerAudioStatus);
-            if (props.partnerAudioStatus.userId === props.peer.partnerID) {
-                audio.enabled = props.partnerAudioStatus.status;
-            }
             setAudioTrack(audio);
             setShowAudio(!audio.enabled);
         })
@@ -32,14 +28,14 @@ const PartnerVideoContainer = (props) => {
             console.log("error peer: ", props.peer);
         });
 
-        if (props.partnerAudioStatus.userId === props.peer.partnerID) {
+        if (props.partnerAudioUserId === props.partnerID && audioTrack) {
             const audio = audioTrack;
-            audio.enabled = props.partnerAudioStatus.status;
+            audio.enabled = props.partnerAudioStatus;
             setAudioTrack(audio);
-            setShowAudio(!audio.enabled);
+            setShowAudio(audio => !audio.enabled);
         }
 
-    }, [props.peer, props.partnerAudioStatus.userId, props.partnerAudioStatus.status]);
+    }, [props.peer, props.partnerAudioUserId, props.partnerAudioStatus]);
 
     const micHandler = () => {
         if (audioTrack?.enabled) {
@@ -86,6 +82,8 @@ const PartnerVideoContainer = (props) => {
                 <h5 className="card-title h5">Partner ID: </h5>
                 <p className="card-text">{props.partnerID}</p>
                 <p className="card-text">Audio ID: {audioTrack?.id}</p>
+                <p>partnerAudioUserId: {props.partnerAudioUserId}</p>
+                <p>partnerAudioStatus: {props.partnerAudioStatus}</p>
             </div>
             <div className="card-footer d-flex justify-content-center">
                 {!showAudio && audioTrack && micOnComponent}
