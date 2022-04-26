@@ -4,9 +4,6 @@ const PartnerVideoContainer = (props) => {
     const ref = useRef();
     const [show, setShow] = useState(true);
     const [audioTrack, setAudioTrack] = useState();
-    const [videoTrack, setVideoTrack] = useState();
-
-    const [showVideo, setShowVideo] = useState(false);
     const [showAudio, setShowAudio] = useState(false);
 
     useEffect(() => {
@@ -32,7 +29,7 @@ const PartnerVideoContainer = (props) => {
             const audio = audioTrack;
             audio.enabled = props.partnerAudioStatus;
             setAudioTrack(audio);
-            setShowAudio(audio => !audio.enabled);
+            setShowAudio(!props.partnerAudioStatus);
         }
 
     }, [props.peer, props.partnerAudioUserId, props.partnerAudioStatus]);
@@ -58,22 +55,8 @@ const PartnerVideoContainer = (props) => {
         }
     }
 
-    const videoHandler = () => {
-        if (videoTrack.enabled) {
-            // show camera
-            videoTrack.enabled = false;
-            setShowVideo(true);
-        } else {
-            videoTrack.enabled = true;
-            // hide camera
-            setShowVideo(false);
-        }
-    }
-
     const micOnComponent = (<button type="button" className="btn btn btn-outline-dark mx-3" onClick={micHandler}><i className="bi bi-mic-fill" style={{ fontSize: 20 }}></i></button>);
     const micOffComponent = (<button type="button" className="btn btn btn-outline-danger mx-3" onClick={micHandler}><i className="bi bi-mic-mute-fill" style={{ fontSize: 20 }}></i></button>);
-    const videoOnComponent = (<button type="button" className="btn btn btn-outline-dark mx-3" onClick={videoHandler}><i className="bi bi-camera-video-fill" style={{ fontSize: 20 }}></i></button>);
-    const videoOffComponent = (<button type="button" className="btn btn btn-outline-danger mx-3" onClick={videoHandler}><i className="bi bi-camera-video-off-fill" style={{ fontSize: 20 }}></i></button>);
 
     const partnerVideoVideoComponent = (
         <>
@@ -82,14 +65,10 @@ const PartnerVideoContainer = (props) => {
                 <h5 className="card-title h5">Partner ID: </h5>
                 <p className="card-text">{props.partnerID}</p>
                 <p className="card-text">Audio ID: {audioTrack?.id}</p>
-                <p>partnerAudioUserId: {props.partnerAudioUserId}</p>
-                <p>partnerAudioStatus: {props.partnerAudioStatus}</p>
             </div>
             <div className="card-footer d-flex justify-content-center">
                 {!showAudio && audioTrack && micOnComponent}
                 {showAudio && audioTrack && micOffComponent}
-                {!showVideo && videoOnComponent}
-                {showVideo && videoOffComponent}
             </div>
         </>)
 

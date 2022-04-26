@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 const VideoConatiner = (props) => {
     const userVideo = useRef();
-    const [showVideo, setShowVideo] = useState(false);
     const [showAudio, setShowAudio] = useState(false);
     const audioTrack = props.stream?.getTracks()?.find(track => track.kind === 'audio');
-    const videoTrack = props.stream.getTracks().find(track => track.kind === 'video');
 
     useEffect(() => {
         if (props.stream) {
@@ -21,7 +19,7 @@ const VideoConatiner = (props) => {
             setShowAudio(true);
         }
 
-    }, [props.stream, props.yourAudioStatus]);//, props.yourVideoStatus
+    }, [props.stream, props.yourAudioStatus]);
 
     const micHandler = () => {
         if (audioTrack.enabled) {
@@ -40,22 +38,8 @@ const VideoConatiner = (props) => {
         }
     }
 
-    const videoHandler = () => {
-        if (videoTrack.enabled) {
-            // show camera
-            videoTrack.enabled = false;
-            setShowVideo(true);
-        } else {
-            videoTrack.enabled = true;
-            // hide camera
-            setShowVideo(false);
-        }
-    }
-
     const micOnComponent = (<button type="button" className="btn btn btn-outline-dark mx-3" onClick={micHandler}><i className="bi bi-mic-fill" style={{ fontSize: 20 }}></i></button>);
     const micOffComponent = (<button type="button" className="btn btn btn-outline-danger mx-3" onClick={micHandler}><i className="bi bi-mic-mute-fill" style={{ fontSize: 20 }}></i></button>);
-    const videoOnComponent = (<button type="button" className="btn btn btn-outline-dark mx-3" onClick={videoHandler}><i className="bi bi-camera-video-fill" style={{ fontSize: 20 }}></i></button>);
-    const videoOffComponent = (<button type="button" className="btn btn btn-outline-danger mx-3" onClick={videoHandler}><i className="bi bi-camera-video-off-fill" style={{ fontSize: 20 }}></i></button>);
 
     return (
         <div className="col col-md">
@@ -69,8 +53,6 @@ const VideoConatiner = (props) => {
                 <div className="card-footer d-flex justify-content-center">
                     {!showAudio && micOnComponent}
                     {showAudio && micOffComponent}
-                    {!showVideo && videoOnComponent}
-                    {showVideo && videoOffComponent}
                 </div>
             </div>
         </div>

@@ -23,7 +23,7 @@ function App() {
   const showPartnerVideo = callAccepted || underCall;
 
   const [yourID, setYourID] = useState("");
-  // const [yourVideoStatus, setYourVideoStatus] = useState(true);
+
   const [yourAudioStatus, setYourAudioStatus] = useState(true);
   const [partnerAudioUserId, setPartnerAudioUserId] = useState("");
   const [partnerAudioStatus, setPartnerAudioStatus] = useState(true);
