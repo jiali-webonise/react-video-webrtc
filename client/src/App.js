@@ -170,26 +170,16 @@ function App() {
 
     socket.current.on("unmute user", (data) => {
       console.log(`unmute ${data.userId}`);
-      const update = {
-        userId: data.userId
-        , status: true
-      }
       setPartnerAudioStatus(true);
       setPartnerAudioUserId(data.userId);
       console.log("unmute partnerAudioStatus", partnerAudioStatus);
-      console.log("unmute update", update);
     });
 
     socket.current.on("mute user", (data) => {
       console.log(`mute ${data.userId}`);
-      const update = {
-        userId: data.userId
-        , status: false
-      }
       setPartnerAudioStatus(false);
       setPartnerAudioUserId(data.userId);
       console.log("mute partnerAudioStatus", partnerAudioStatus);
-      console.log("mute update", update);
     });
 
   }, []);
