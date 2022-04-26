@@ -4,19 +4,12 @@ const PartnerVideoContainer = (props) => {
     const ref = useRef();
     const [show, setShow] = useState(true);
     const [audioTrack, setAudioTrack] = useState();
-    const [videoTrack, setVideoTrack] = useState();
-
-    const [showVideo, setShowVideo] = useState(false);
     const [showAudio, setShowAudio] = useState(false);
 
     useEffect(() => {
         props.peer.on("stream", stream => {
             ref.current.srcObject = stream;
             const audio = stream.getTracks()?.find(track => track.kind === 'audio');
-            console.log("props.partnerAudioStatus", props.partnerAudioStatus);
-            if (props.partnerAudioStatus.userId === props.peer.partnerID) {
-                audio.enabled = props.partnerAudioStatus.status;
-            }
             setAudioTrack(audio);
             setShowAudio(!audio.enabled);
         })
@@ -32,7 +25,14 @@ const PartnerVideoContainer = (props) => {
             console.log("error peer: ", props.peer);
         });
 
-    }, [props.peer, props.partnerAudioStatus]);
+        if (props.partnerAudioUserId === props.partnerID && audioTrack) {
+            const audio = audioTrack;
+            audio.enabled = props.partnerAudioStatus;
+            setAudioTrack(audio);
+            setShowAudio(!props.partnerAudioStatus);
+        }
+
+    }, [props.peer, props.partnerAudioUserId, props.partnerAudioStatus]);
 
     const micHandler = () => {
         if (audioTrack?.enabled) {
@@ -55,22 +55,8 @@ const PartnerVideoContainer = (props) => {
         }
     }
 
-    const videoHandler = () => {
-        if (videoTrack.enabled) {
-            // show camera
-            videoTrack.enabled = false;
-            setShowVideo(true);
-        } else {
-            videoTrack.enabled = true;
-            // hide camera
-            setShowVideo(false);
-        }
-    }
-
     const micOnComponent = (<button type="button" className="btn btn btn-outline-dark mx-3" onClick={micHandler}><i className="bi bi-mic-fill" style={{ fontSize: 20 }}></i></button>);
     const micOffComponent = (<button type="button" className="btn btn btn-outline-danger mx-3" onClick={micHandler}><i className="bi bi-mic-mute-fill" style={{ fontSize: 20 }}></i></button>);
-    const videoOnComponent = (<button type="button" className="btn btn btn-outline-dark mx-3" onClick={videoHandler}><i className="bi bi-camera-video-fill" style={{ fontSize: 20 }}></i></button>);
-    const videoOffComponent = (<button type="button" className="btn btn btn-outline-danger mx-3" onClick={videoHandler}><i className="bi bi-camera-video-off-fill" style={{ fontSize: 20 }}></i></button>);
 
     const partnerVideoVideoComponent = (
         <>
@@ -83,8 +69,6 @@ const PartnerVideoContainer = (props) => {
             <div className="card-footer d-flex justify-content-center">
                 {!showAudio && audioTrack && micOnComponent}
                 {showAudio && audioTrack && micOffComponent}
-                {!showVideo && videoOnComponent}
-                {showVideo && videoOffComponent}
             </div>
         </>)
 

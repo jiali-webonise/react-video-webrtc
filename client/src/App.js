@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import PartnerVideoContainer from './components/PartnerVideoContainer';
+import PeersVideo from './components/PeersVideo';
 import CallInfo from './components/CallInfo';
 import CallInfoList from './components/CallInfoList';
 import VideoConatiner from './components/VideoConatiner';
@@ -12,6 +12,7 @@ let callingInfo;
 let callingInfoList = [];
 let localPeers = [];
 console.log("REACT_APP_ENVIRONMENT: ", process.env.REACT_APP_ENVIRONMENT);
+
 function App() {
   const BASE_URL = process.env.REACT_APP_ENVIRONMENT === 'PRODUCTION' ? process.env.REACT_APP_BASE_URL_PROD : process.env.REACT_APP_BASE_URL_DEV;
 
@@ -22,9 +23,10 @@ function App() {
   const showPartnerVideo = callAccepted || underCall;
 
   const [yourID, setYourID] = useState("");
-  // const [yourVideoStatus, setYourVideoStatus] = useState(true);
+
   const [yourAudioStatus, setYourAudioStatus] = useState(true);
-  const [partnerAudioStatus, setPartnerAudioStatus] = useState({ userId: "", status: true });
+  const [partnerAudioUserId, setPartnerAudioUserId] = useState("");
+  const [partnerAudioStatus, setPartnerAudioStatus] = useState(true);
 
   const [peers, setPeers] = useState([]);
 
@@ -44,14 +46,15 @@ function App() {
     socket.current = io.connect("/");
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
       setStream(stream);
-    })
+    });
 
     socket.current.on("yourID", (id) => {
       setYourID(id);
-    })
+    });
+
     socket.current.on("allUsers", (users) => {
       setUsers(users);
-    })
+    });
 
     socket.current.on("deprecated user", (data) => {
       alert(`Cannot call ${data.userToCall}, this user is deprecated`);
@@ -66,6 +69,9 @@ function App() {
       setCallInfoList(prev => {
         return [...prev, data.callInfo]
       });
+      setPartnerAudioStatus(true);
+      setPartnerAudioUserId(data.from);
+      console.log("hey partnerAudioStatus", partnerAudioStatus);
       callingInfo = data.callInfo;
       callingInfoList.push(data.callInfo);
     });
@@ -101,7 +107,7 @@ function App() {
       });
 
       callingInfo = data.callInfo;
-    })
+    });
 
     //handle user leave
     socket.current.on("user left", (data) => {
@@ -148,34 +154,44 @@ function App() {
           setReceivingCall(false);
         }
       }
-    })
+    });
 
     socket.current.on("refresh users", (users) => {
       setUsers(users);
-    })
+    });
 
     socket.current.on("turnOnPartnerAudio", (data) => {
       setYourAudioStatus(true)//on
-    })
+    });
 
     socket.current.on("turnOffPartnerAudio", (data) => {
       setYourAudioStatus(false)//off
-    })
+    });
 
     socket.current.on("unmute user", (data) => {
       console.log(`unmute ${data.userId}`);
-      setPartnerAudioStatus({
+      const update = {
         userId: data.userId
         , status: true
-      });
-    })
+      }
+      setPartnerAudioStatus(true);
+      setPartnerAudioUserId(data.userId);
+      console.log("unmute partnerAudioStatus", partnerAudioStatus);
+      console.log("unmute update", update);
+    });
+
     socket.current.on("mute user", (data) => {
       console.log(`mute ${data.userId}`);
-      setPartnerAudioStatus({
+      const update = {
         userId: data.userId
         , status: false
-      });
-    })
+      }
+      setPartnerAudioStatus(false);
+      setPartnerAudioUserId(data.userId);
+      console.log("mute partnerAudioStatus", partnerAudioStatus);
+      console.log("mute update", update);
+    });
+
   }, []);
 
   const showAlert = (msg) => {
@@ -198,15 +214,15 @@ function App() {
     }
   }
 
-  const turnOnAudioSocketHandler = (id) => {
+  const turnOnSelfAudioSocketHandler = (id) => {
     if (underCall) {
-      socket.current.emit('turn on user audio', { userId: id });//all connect partners
+      socket.current.emit('turn on self audio', { userId: id });//all connect partners
     }
   }
 
-  const turnOffAudioSocketHandler = (id) => {
+  const turnOffSelfAudioSocketHandler = (id) => {
     if (underCall) {
-      socket.current.emit('turn off user audio', { userId: id });
+      socket.current.emit('turn off self audio', { userId: id });
     }
   }
 
@@ -275,10 +291,13 @@ function App() {
       peer.signal(data.signal);
       socket.current.emit("update after successful connection", {
         callInfo: data.callInfo
-      })
+      });
     })
     setPeers(prev => [...prev, { peer: peer, partnerID: id }]);
     localPeers.push({ peer: peer, partnerID: id });
+    setPartnerAudioStatus(true);
+    setPartnerAudioUserId(id);
+    console.log("call peer partnerAudioStatus", partnerAudioStatus);
   }
 
   function acceptCall() {
@@ -405,24 +424,20 @@ function App() {
           stream={stream}
           yourID={yourID}
           yourAudioStatus={yourAudioStatus}
-          onTurnOffAduioSocket={turnOnAudioSocketHandler}
-          onTurnOnAudioSocket={turnOffAudioSocketHandler}
+          onTurnOffAduioSocket={turnOffSelfAudioSocketHandler}
+          onTurnOnAudioSocket={turnOnSelfAudioSocketHandler}
         />}
 
         <div className="col col-md">
           <div className="card mt-3">
-            {showPartnerVideo && peers.length > 0 && peers.map((peer, index) => {
-              return (
-                <PartnerVideoContainer
-                  key={index}
-                  peer={peer.peer}
-                  partnerID={peer.partnerID}
-                  partnerAudioStatus={partnerAudioStatus}
-                  onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
-                  onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
-                />
-              );
-            })}
+            <PeersVideo
+              showPartnerVideo={showPartnerVideo}
+              peers={peers}
+              partnerAudioUserId={partnerAudioUserId}
+              partnerAudioStatus={partnerAudioStatus}
+              onTurnOffAduioSocket={turnOffPartnerAudioSocketHandler}
+              onTurnOnAudioSocket={turnOnPartnerAudioSocketHandler}
+            />
           </div>
         </div>
       </div>
