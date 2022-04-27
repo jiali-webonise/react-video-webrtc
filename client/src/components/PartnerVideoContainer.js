@@ -65,7 +65,7 @@ const PartnerVideoContainer = (props) => {
 
     const partnerVideoVideoComponent = (
         <>
-            <video className='video-style' playsInline autoPlay ref={ref} />
+            <video className='video-style' playsInline autoPlay ref={ref} controls />
             <div className="card-body">
                 <h5 className="card-title h5">Partner ID: </h5>
                 <p className="card-text">{props.partnerID}</p>
